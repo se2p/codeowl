@@ -1,0 +1,106 @@
+/* ═══════════════════════════════════════════════════════════
+   AP13: Hint System — Block Highlighting
+   ═══════════════════════════════════════════════════════════ */
+
+.block-hint-error {
+    border: 2px solid #dc3545 !important;
+    animation: pulse-red 1.5s infinite;
+    position: relative;
+    z-index: 1;
+}
+
+.block-hint-error::after {
+    content: attr(data-hint-label);
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+}
+
+@keyframes pulse-red {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AP19 Teil A (A13): Progressive LLM-tag flow-in
+   ═══════════════════════════════════════════════════════════ */
+
+/* Pulsing placeholder shown while we poll for an LLM-tag that hasn't arrived yet. */
+.tag-chip-skeleton {
+    background-color: rgba(13, 202, 240, 0.15); /* echo of text-bg-info so the final colour is familiar */
+    color: rgba(13, 110, 120, 0.85);
+    animation: tag-skeleton-pulse 1.6s ease-in-out infinite;
+}
+.tag-chip-skeleton-bar {
+    display: inline-block;
+    min-width: 4ch;
+    height: 0.75em;
+    border-radius: 3px;
+    background: linear-gradient(
+        90deg,
+        rgba(13, 202, 240, 0.25) 0%,
+        rgba(13, 202, 240, 0.55) 50%,
+        rgba(13, 202, 240, 0.25) 100%
+    );
+    background-size: 200% 100%;
+    animation: tag-skeleton-shimmer 1.4s linear infinite;
+}
+@keyframes tag-skeleton-pulse {
+    0%, 100% { opacity: 0.75; }
+    50%      { opacity: 1; }
+}
+@keyframes tag-skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Fade-in for freshly-landed LLM tags — applied once per mount. */
+.tag-chip-fade-in {
+    animation: tag-chip-fade-in 450ms ease-out both;
+}
+@keyframes tag-chip-fade-in {
+    0%   { opacity: 0; transform: translateY(-2px) scale(0.92); }
+    100% { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+/* Respect user motion preferences — drop animations for sensitive users. */
+@media (prefers-reduced-motion: reduce) {
+    .tag-chip-skeleton,
+    .tag-chip-skeleton-bar,
+    .tag-chip-fade-in {
+        animation: none !important;
+    }
+}
+
+/* A15c: Library card select-mode polish. `library-card-selectable` signals "you can tick this";
+   the subtle hover lift hints interactivity without competing with the primary Open/Copy buttons. */
+.library-card-selectable {
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.library-card-selectable:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+    transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .library-card-selectable,
+    .library-card-selectable:hover {
+        transition: none !important;
+        transform: none !important;
+    }
+}

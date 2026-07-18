@@ -1,0 +1,16 @@
+-- AP31: Inline-Split-Blocks
+-- Per-line fragment decomposition stored as JSONB, following the distractor_plan pattern.
+-- Additive + nullable → existing rows are unaffected.
+--
+-- Shape:
+-- {
+--   "splits": [
+--     {
+--       "lineIndex": 4,
+--       "fragments": ["int i = 0;", "i < arr.length;", "i++"],
+--       "prefix": "for (", "suffix": ") {",
+--       "distractors": [ { "text": "i <= arr.length;", "type": "OFF_BY_ONE" } ]
+--     }
+--   ]
+-- }
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS split_plan jsonb;

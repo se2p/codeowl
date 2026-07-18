@@ -1,0 +1,167 @@
+/*
+ * Copyright (C) 2019-2026 CodeOwl contributors
+ *
+ * This file is part of CodeOwl.
+ *
+ * CodeOwl is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * CodeOwl is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with CodeOwl. If not, see <http://www.gnu.org/licenses/>.
+ */
+package de.uni_passau.fim.se2.domain.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * Singleton component that loads the concept catalog and alias mapping at startup.
+ * Provides lookup, validation, and prompt-formatting methods for concept detection.
+ */
+@Slf4j
+@Component
+public class ConceptCatalog {
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    /** slug → CatalogEntry */
+    private Map<String, CatalogEntry> bySlug = Map.of();
+
+    /** lowercase alias → slug */
+    private Map<String, String> aliasToSlug = Map.of();
+
+    /** All valid slugs (unmodifiable) */
+    @Getter
+    private Set<String> validSlugs = Set.of();
+
+    @PostConstruct
+    void init() {
+        try {
+            loadCatalog();
+            loadAliasMapping();
+            log.info("ConceptCatalog loaded: {} concepts, {} aliases", bySlug.size(), aliasToSlug.size());
+        } catch (IOException e) {
+            log.error("Failed to load concept catalog — concept detection will be degraded", e);
+        }
+    }
+
+    private void loadCatalog() throws IOException {
+        try (InputStream is = new ClassPathResource("concepts/concept-catalog.json").getInputStream()) {
+            List<CatalogEntry> entries = mapper.readValue(is, new TypeReference<>() {});
+            Map<String, CatalogEntry> map = new LinkedHashMap<>();
+            for (CatalogEntry entry : entries) {
+                map.put(entry.slug, entry);
+            }
+            this.bySlug = Collections.unmodifiableMap(map);
+            this.validSlugs = Collections.unmodifiableSet(map.keySet());
+        }
+    }
+
+    private void loadAliasMapping() throws IOException {
+        try (InputStream is = new ClassPathResource("concepts/alias-mapping.json").getInputStream()) {
+            Map<String, String> raw = mapper.readValue(is, new TypeReference<>() {});
+            Map<String, String> normalized = new HashMap<>();
+            for (var entry : raw.entrySet()) {
+                String key = entry.getKey().toLowerCase(Locale.ROOT).trim();
+                if (key.startsWith("_")) continue; // skip _comment etc.
+                normalized.put(key, entry.getValue());
+            }
+            // Also add all aliases from the catalog entries themselves
+            for (CatalogEntry ce : bySlug.values()) {
+                if (ce.aliases != null) {
+                    for (String alias : ce.aliases) {
+                        normalized.putIfAbsent(alias.toLowerCase(Locale.ROOT).trim(), ce.slug);
+                    }
+                }
+            }
+            this.aliasToSlug = Collections.unmodifiableMap(normalized);
+        }
+    }
+
+    // ── Public API ────────────────────────────────────────
+
+    /** Returns true if the given string is a valid catalog slug. */
+    public boolean isValidSlug(String slug) {
+        return slug != null && bySlug.containsKey(slug.toLowerCase(Locale.ROOT).trim());
+    }
+
+    /** Tries to resolve a free-text string to a catalog slug via alias mapping. */
+    public Optional<String> resolveAlias(String input) {
+        if (input == null) return Optional.empty();
+        String key = input.toLowerCase(Locale.ROOT).trim();
+        // Direct slug match first
+        if (bySlug.containsKey(key)) return Optional.of(key);
+        // Alias lookup
+        return Optional.ofNullable(aliasToSlug.get(key));
+    }
+
+    /**
+     * Normalizes a raw concept string: returns the canonical slug if it's
+     * a valid slug or a known alias, empty otherwise.
+     */
+    public Optional<String> normalize(String raw) {
+        return resolveAlias(raw);
+    }
+
+    /**
+     * Returns the catalog entries filtered for a given programming language,
+     * formatted as a prompt-friendly string.
+     * Format per line: "slug — displayNameEn: description"
+     */
+    public String getCatalogForPrompt(String language) {
+        String lang = language == null ? "" : language.toLowerCase(Locale.ROOT).trim();
+        return bySlug.values().stream()
+                .filter(e -> e.languages != null && e.languages.stream()
+                        .anyMatch(l -> l.equalsIgnoreCase(lang)))
+                .map(e -> "%s — %s: %s".formatted(e.slug, e.displayNameEn, e.description))
+                .collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * Returns the set of valid slugs for a specific programming language.
+     */
+    public Set<String> getValidSlugsForLanguage(String language) {
+        String lang = language == null ? "" : language.toLowerCase(Locale.ROOT).trim();
+        return bySlug.values().stream()
+                .filter(e -> e.languages != null && e.languages.stream()
+                        .anyMatch(l -> l.equalsIgnoreCase(lang)))
+                .map(e -> e.slug)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    public Optional<CatalogEntry> getEntry(String slug) {
+        return Optional.ofNullable(bySlug.get(slug));
+    }
+
+    // ── Inner record ──────────────────────────────────────
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CatalogEntry(
+            String category,
+            String slug,
+            String displayNameDe,
+            String displayNameEn,
+            String description,
+            List<String> aliases,
+            List<String> languages,
+            String level
+    ) {}
+}

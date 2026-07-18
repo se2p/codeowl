@@ -1,0 +1,263 @@
+/** Stylesheet for the puzzles */
+
+.sortable-code {
+    position: static;
+    padding-left: 0px;
+    margin-left: 2%;
+    float: left;
+}
+#sortableTrash { width: 38%; }
+#sortable { width: 56%; }
+.sortable-code ul {
+    font-size: 120%;
+    font-family: monospace;
+    list-style: none;
+    background-color: #efefff;
+    padding-bottom: 10px;
+    padding-left: 0;
+    margin-left: 0;
+    border: 1px solid #efefff;;
+}
+.sortable-code ul:empty {
+  padding-bottom: 30px;
+}
+.sortable-code li, .sortable-code li:before, .sortable-code li:after {
+  box-sizing: content-box;
+}
+ul.output {
+    background-color: #FFA;
+}
+.sortable-code li {
+    -moz-border-radius:10px;
+    -webkit-border-radius:10px;
+    border-radius: 10px;
+    background-color:#EFEFEF;
+    border:1px solid lightgray;
+    padding:10px;
+    margin-top: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: move;
+}
+.sortable-code li:hover {
+    overflow: visible;
+}
+
+ul.incorrect {
+    border: 1px solid red;
+    background-color: #ffefef;
+}
+
+ul.correct {
+    background-color: #efffef;
+    background-color: #DFF2BF;
+}
+
+li.incorrectIndent {
+    border: 1px solid #FFC107;      /* Material Design Amber */
+    border-left: 10px solid #FFC107;
+    background-color: #FFF8E1;      /* sanftes Gelb im Hintergrund */
+}
+
+li.correctIndent {
+    border: 1px solid green;
+    border-left: 10px solid green;
+}
+
+li.incorrectPosition, .testcase.fail, .testcase.error {
+    background-color: #FFBABA;
+    border:1px solid red;
+}
+
+li.correctPosition, .testcase.pass {
+    background-color: #DFF2BF;
+    border:1px solid green;
+}
+
+.testcase { padding: 10px; margin-bottom: 10px;}
+.testcase .msg { font-weight: bold; }
+.testcase .error { color: red;}
+.testcase .feedback { font-weight: bolder;}
+.testcase .fail .expected, .testcase .fail .actual {
+    color: red; 
+    font-weight: bolder;
+}
+.testcase .output { 
+    display: block; 
+    white-space: pre; 
+    background-color: #555555;
+    color: white;
+    font-size: 12px;
+    line-height: 15px;
+    margin: 5px;
+    padding: 5px;
+}
+/** For styling the toggleable elements */
+.jsparson-toggle {
+    padding: 0 15px;
+    display: inline-block;
+    border: 1px dashed black;
+    z-index: 500;
+    cursor: pointer;
+    min-width: 10px;
+    min-height: 15px;
+}
+.jsparson-toggle:empty {
+    border-color: red;
+}
+.jsparson-toggle:empty:before {
+    content: "??";
+    display: block;
+    color: red;
+}
+
+/* ============================================================
+   AP 17: Click-to-Move & Touch-Interaktion
+   ============================================================ */
+
+/* Selected block */
+.ctm-selected {
+    outline: 3px solid #0d6efd !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(13, 110, 253, 0.4);
+    background-color: #e7f1ff !important;
+    cursor: pointer !important;
+    position: relative;
+    z-index: 10;
+}
+
+/* Insertion marker: shows a blue line above the hovered block */
+.ctm-insert-before {
+    border-top: 3px solid #0d6efd !important;
+    margin-top: 2px;
+    position: relative;
+}
+.ctm-insert-before::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: -2px;
+    width: 10px;
+    height: 10px;
+    background: #0d6efd;
+    border-radius: 50%;
+}
+
+/* In click-to-move mode, change cursor from "move" to "pointer" */
+.click-to-move-active li {
+    cursor: pointer !important;
+}
+
+/* Pulse animation on selected block for visibility */
+@keyframes ctm-pulse {
+    0%   { outline-color: #0d6efd; }
+    50%  { outline-color: #6ea8fe; }
+    100% { outline-color: #0d6efd; }
+}
+.ctm-selected {
+    animation: ctm-pulse 1.5s ease-in-out infinite;
+}
+
+/* Empty zone hint when a block is selected */
+.click-to-move-active:empty {
+    border: 2px dashed #0d6efd !important;
+    min-height: 60px;
+}
+.click-to-move-active:empty::after {
+    content: "Click here to place block";
+    display: block;
+    text-align: center;
+    color: #6c757d;
+    padding: 15px;
+    font-style: italic;
+    font-size: 0.85em;
+}
+
+/* AP30: Fill-in-the-Gaps — inline input rendered inside a Parsons block */
+.jsparson-blank {
+    display: inline-block;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1.2;
+    padding: 0 4px;
+    margin: 0 1px;
+    border: none;
+    border-bottom: 2px solid #0d6efd;
+    background: rgba(13, 110, 253, 0.08);
+    border-radius: 3px 3px 0 0;
+    color: inherit;
+    min-width: 2.5em;
+    vertical-align: baseline;
+}
+.jsparson-blank:focus {
+    outline: none;
+    background: rgba(13, 110, 253, 0.16);
+    border-bottom-color: #0a58ca;
+}
+.jsparson-blank.blank-correct {
+    border-bottom-color: #198754;
+    background: rgba(25, 135, 84, 0.18);
+}
+.jsparson-blank.blank-incorrect {
+    border-bottom-color: #dc3545;
+    background: rgba(220, 53, 69, 0.18);
+}
+
+/* ── AP31: Inline-Split-Blocks ───────────────────────────── */
+.split-line {
+    white-space: pre-wrap;
+}
+.split-fixed {
+    font-family: monospace;
+    opacity: 0.85;
+}
+.split-slots {
+    display: inline;
+}
+.split-slot {
+    display: inline-block;
+    min-width: 2.4em;
+    min-height: 1.5em;
+    margin: 0 2px;
+    padding: 0 2px;
+    vertical-align: middle;
+    border-bottom: 2px dashed #9aa0a6;
+    border-radius: 3px;
+    background: rgba(154, 160, 166, 0.10);
+}
+.split-slot.filled {
+    border-bottom-style: solid;
+    border-bottom-color: #0d6efd;
+    background: rgba(13, 110, 253, 0.10);
+}
+.split-tray {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+.split-frag {
+    display: inline-block;
+    padding: 1px 8px;
+    font-family: monospace;
+    font-size: 0.9em;
+    cursor: pointer;
+    user-select: none;
+    background: #eef1f5;
+    border: 1px solid #ccd2da;
+    border-radius: 12px;
+}
+.split-frag:hover {
+    background: #e2e8f0;
+    border-color: #0d6efd;
+}
+/* Grading feedback applied by SolvePage */
+.split-slot.split-correct {
+    border-bottom-color: #198754;
+    background: rgba(25, 135, 84, 0.14);
+}
+.split-slot.split-incorrect {
+    border-bottom-color: #dc3545;
+    background: rgba(220, 53, 69, 0.14);
+}

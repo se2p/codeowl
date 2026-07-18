@@ -1,0 +1,103 @@
+# === GPT Config ===
+openai:
+  api:
+    key: ${OPENAI_API_KEY}
+prompts:
+  identity:
+    base: classpath:PromptStuff/Identity/
+
+# === Database & JPA ===
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 30
+      # Leak detection only if you are diagnosing; comment out to reduce noise
+      # leak-detection-threshold: 20000
+
+  jpa:
+    show-sql: false          # keep console clean; control via logger instead
+    hibernate:
+      ddl-auto: none
+
+# === Auth / JWT ===
+auth:
+  jwt:
+    secret: ${JWT_SECRET:defaultDevSecretKeyThatIsAtLeast256BitsLongForHS256Algorithm!!}
+    expiration-ms: 86400000  # 24 hours
+  root-admin-email: ${ROOT_ADMIN_EMAIL:}
+  app:
+    base-url: ${APP_BASE_URL:http://localhost:5173}
+
+# === Mail (optional, falls nicht konfiguriert -> Console-Fallback) ===
+spring.mail:
+  host: ${MAIL_HOST:}
+  port: ${MAIL_PORT:587}
+  username: ${MAIL_USERNAME:}
+  password: ${MAIL_PASSWORD:}
+  properties:
+    mail.smtp.auth: true
+    mail.smtp.starttls.enable: true
+
+# === App ===
+app:
+  version:
+    id: c873574a-af80-44cc-8b9d-9bc742762059
+  generation:
+    maxAttempts: 3   # retry whole sequence generation if validation fails
+    maxLocPerTask: 20
+
+# === Logging ===
+logging:
+  level:
+    root: INFO
+    # Spring and Hibernate noise tamed
+    org.springframework: INFO
+    org.springframework.boot: INFO
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql: WARN
+    com.zaxxer.hikari: INFO
+    # Your app packages
+    de.uni_passau.fim.se2: INFO
+    # If your OpenAI client was noisy at TRACE, force it to INFO
+    de.uni_passau.fim.se2.infrastructure.ai.openai: INFO
+  # Pattern (optional): uncomment if you want timestamps/thread/level aligned
+  # pattern:
+  #   console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# === AI Config ===
+ai:
+  defaultProvider: OPENAI
+  openai:
+    defaultModel: GPT_4_1
+
+# === CodeOwl runners (explicit!) ===
+codeowl:
+  concept-eval:
+    enabled: true
+    generator:
+      enabled: false
+  lang-eval:
+    enabled: false
+    # Runner anschalten, wenn du generieren möchtest:
+  ps-eval:
+    enabled: false
+  solve-eval:
+    enabled: false
+  complexity-eval:
+    enabled: false
+
+# Runner settings (reads into ComplexityEvalProperties)
+eval:
+  complexity:
+    generate: false          # generate N sequences before evaluating
+    n: 100
+    language: java
+    model: GPT_5_NANO
+    prompt-version: "short_loc_v1"
+    notes: "prompt-engineering run"
+# Language detection runner off

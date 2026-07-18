@@ -1,0 +1,50 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Maven build output
+target/
+*.class
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/launch.json
+.vscode/settings.json
+
+# Logs
+logs/
+*.log
+
+# Generated reports
+htmlReport/
+htmlReport.zip
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+*.zip
+
+# Docker secrets
+.dockerenv
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+gpt-debug-response.json
+.openai-key

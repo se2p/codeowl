@@ -1,0 +1,702 @@
+[
+  {
+    "category": "Control Flow",
+    "slug": "if-else",
+    "displayNameDe": "If-Else-Verzweigung",
+    "displayNameEn": "If-Else Statement",
+    "description": "Executes different code blocks depending on a boolean condition.",
+    "aliases": ["if/else", "if else", "conditional", "conditionals", "conditional statement", "conditional statements", "branching", "decision", "if statement", "selection", "if-statement", "else if", "else-if", "elif"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "switch-case",
+    "displayNameDe": "Switch-Anweisung",
+    "displayNameEn": "Switch Statement",
+    "description": "Selects one of several code blocks to execute based on the value of a variable.",
+    "aliases": ["switch", "switch case", "switch/case", "switch statement", "case statement", "multi-branch selection", "match statement", "switch expression"],
+    "languages": ["java", "javascript", "python"],
+    "level": "beginner"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "for-loop",
+    "displayNameDe": "For-Schleife",
+    "displayNameEn": "For Loop",
+    "description": "A loop that repeats a block of code a fixed number of times using a counter variable.",
+    "aliases": ["for loop", "for-loops", "counted loop", "count loop", "iteration", "iterative loop", "for statement", "counting loop", "index loop", "counter loop"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "while-loop",
+    "displayNameDe": "While-Schleife",
+    "displayNameEn": "While Loop",
+    "description": "A loop that repeats a block of code as long as a given condition is true.",
+    "aliases": ["while loop", "while statement", "condition loop", "conditional loop", "while-loops", "indefinite loop", "sentinel loop"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "do-while-loop",
+    "displayNameDe": "Do-While-Schleife",
+    "displayNameEn": "Do-While Loop",
+    "description": "A loop that executes its body at least once and then repeats as long as the condition is true.",
+    "aliases": ["do while", "do-while", "do while loop", "post-condition loop", "do-while loop"],
+    "languages": ["java", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "enhanced-for-loop",
+    "displayNameDe": "Erweiterte For-Schleife (For-Each)",
+    "displayNameEn": "Enhanced For Loop / For-Each",
+    "description": "A loop that iterates over each element of an array or collection without using an index.",
+    "aliases": ["for-each", "foreach", "for each", "for each loop", "enhanced for", "range-based loop", "for-each loop", "for-in loop", "for element in collection", "for x in"],
+    "languages": ["java"],
+    "level": "beginner"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "break-continue",
+    "displayNameDe": "Break und Continue",
+    "displayNameEn": "Break and Continue",
+    "description": "Statements that alter loop execution: break exits the loop, continue skips to the next iteration.",
+    "aliases": ["break", "continue", "break statement", "continue statement", "loop control", "loop exit", "skip iteration", "exit loop"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "nested-loops",
+    "displayNameDe": "Verschachtelte Schleifen",
+    "displayNameEn": "Nested Loops",
+    "description": "A loop contained within another loop, often used to process two-dimensional data or generate combinations.",
+    "aliases": ["nested loop", "loop in loop", "double loop", "double for loop", "two-dimensional loop", "matrix traversal", "inner loop", "outer loop"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Control Flow",
+    "slug": "ternary-operator",
+    "displayNameDe": "Ternärer Operator",
+    "displayNameEn": "Ternary Operator",
+    "description": "A compact inline expression that evaluates a condition and returns one of two values.",
+    "aliases": ["ternary", "conditional expression", "inline if", "conditional operator", "?:", "one-line if", "ternary expression", "x if y else z"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "array",
+    "displayNameDe": "Array",
+    "displayNameEn": "Array",
+    "description": "A fixed-size, indexed collection of elements of the same type.",
+    "aliases": ["arrays", "array access", "indexed array", "int array", "string array", "primitive array", "array declaration", "index access", "array indexing", "array element"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "arraylist",
+    "displayNameDe": "ArrayList",
+    "displayNameEn": "ArrayList",
+    "description": "A dynamic, resizable list backed by an array, part of Java's Collections framework.",
+    "aliases": ["array list", "ArrayList", "dynamic array", "resizable array", "java list", "List", "java.util.ArrayList", "List<String>", "List<Integer>", "java collection list"],
+    "languages": ["java"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "list",
+    "displayNameDe": "Liste (Python)",
+    "displayNameEn": "List (Python)",
+    "description": "An ordered, mutable sequence of elements in Python, supporting mixed types.",
+    "aliases": ["python list", "mutable sequence", "dynamic list", "python array", "list append", "list indexing", "list operations"],
+    "languages": ["python"],
+    "level": "beginner"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "dictionary",
+    "displayNameDe": "Dictionary",
+    "displayNameEn": "Dictionary",
+    "description": "A Python collection of key-value pairs allowing fast lookup by key.",
+    "aliases": ["dict", "python dict", "python dictionary", "key-value pairs", "mapping", "associative array", "hash map python", "key value store"],
+    "languages": ["python"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "hashmap",
+    "displayNameDe": "HashMap",
+    "displayNameEn": "HashMap",
+    "description": "A data structure that maps keys to values for fast lookup, insertion, and deletion.",
+    "aliases": ["hash map", "HashMap", "Map", "key-value map", "hash table", "hashtable", "LinkedHashMap", "TreeMap", "java map", "Map<String, Integer>", "javascript object map"],
+    "languages": ["java", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "set",
+    "displayNameDe": "Menge (Set)",
+    "displayNameEn": "Set",
+    "description": "A collection that stores unique elements with no guaranteed order.",
+    "aliases": ["HashSet", "hash set", "unique collection", "set collection", "TreeSet", "LinkedHashSet", "python set", "java set", "Set<String>", "distinct elements"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "stack",
+    "displayNameDe": "Stapel (Stack)",
+    "displayNameEn": "Stack",
+    "description": "A last-in, first-out (LIFO) data structure supporting push and pop operations.",
+    "aliases": ["LIFO", "java stack", "Stack", "stack data structure", "push pop", "stack push", "stack pop", "stack operations"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "queue",
+    "displayNameDe": "Warteschlange (Queue)",
+    "displayNameEn": "Queue",
+    "description": "A first-in, first-out (FIFO) data structure used to process elements in order.",
+    "aliases": ["FIFO", "java queue", "Queue", "LinkedList queue", "deque", "ArrayDeque", "queue data structure", "python queue", "queue operations", "enqueue dequeue"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "linked-list",
+    "displayNameDe": "Verkettete Liste",
+    "displayNameEn": "Linked List",
+    "description": "A linear data structure where each element (node) holds a value and a reference to the next node.",
+    "aliases": ["LinkedList", "linked list", "node list", "singly linked list", "doubly linked list", "java linkedlist", "node-based list", "pointer list"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "2d-array",
+    "displayNameDe": "Zweidimensionales Array",
+    "displayNameEn": "2D Array / Matrix",
+    "description": "An array of arrays forming a grid or matrix structure with rows and columns.",
+    "aliases": ["two dimensional array", "2d array", "matrix", "grid", "multi-dimensional array", "array of arrays", "2D-Array", "nested array", "int[][]", "jagged array"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Data Structures & Collections",
+    "slug": "tuple",
+    "displayNameDe": "Tupel",
+    "displayNameEn": "Tuple",
+    "description": "An immutable ordered sequence of elements in Python.",
+    "aliases": ["python tuple", "immutable sequence", "immutable list", "fixed sequence", "tuples", "coordinate pair"],
+    "languages": ["python"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "function-definition",
+    "displayNameDe": "Funktions-/Methodendefinition",
+    "displayNameEn": "Function / Method Definition",
+    "description": "Declaring a reusable named block of code that performs a specific task.",
+    "aliases": ["method definition", "function declaration", "method declaration", "def", "void method", "function", "method", "subroutine", "procedure", "defining a function", "defining a method", "function signature", "method signature"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "parameters-arguments",
+    "displayNameDe": "Parameter und Argumente",
+    "displayNameEn": "Parameters and Arguments",
+    "description": "Values passed into a function or method to customize its behavior.",
+    "aliases": ["parameters", "arguments", "function parameters", "method parameters", "function arguments", "passing arguments", "input parameters", "formal parameters", "actual parameters", "method arguments"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "return-value",
+    "displayNameDe": "Rückgabewert",
+    "displayNameEn": "Return Value",
+    "description": "The value a function sends back to its caller after execution.",
+    "aliases": ["return", "return statement", "returning a value", "function return", "method return", "output value", "return type", "non-void method"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "recursion",
+    "displayNameDe": "Rekursion",
+    "displayNameEn": "Recursion",
+    "description": "A technique where a function calls itself to solve a problem by breaking it into smaller subproblems.",
+    "aliases": ["recursive function", "recursive method", "recursive call", "self-call", "base case", "recursive algorithm", "recursion tree", "factorial recursion", "fibonacci recursion"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "method-overloading",
+    "displayNameDe": "Methoden-Überladung",
+    "displayNameEn": "Method Overloading",
+    "description": "Defining multiple methods with the same name but different parameter lists in the same class.",
+    "aliases": ["overloading", "function overloading", "overloaded methods", "same name different parameters", "compile-time polymorphism"],
+    "languages": ["java", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "lambda-expression",
+    "displayNameDe": "Lambda-Ausdruck",
+    "displayNameEn": "Lambda Expression",
+    "description": "An anonymous function that can be passed as an argument or stored in a variable.",
+    "aliases": ["lambda", "anonymous function", "arrow function", "arrow functions", "=>", "functional interface", "lambda function", "Comparator lambda", "()->{}", "x -> x", "lambda expression java"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "higher-order-function",
+    "displayNameDe": "Höherwertige Funktion",
+    "displayNameEn": "Higher-Order Function",
+    "description": "A function that takes another function as an argument or returns a function as its result.",
+    "aliases": ["higher order function", "map reduce filter", "functional programming", "function as argument", "callback", "stream operations", "map()", "filter()", "reduce()", "forEach", "passing functions"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "variable-scope",
+    "displayNameDe": "Variablenbereich (Scope)",
+    "displayNameEn": "Variable Scope",
+    "description": "The region of code in which a variable is accessible, such as local or global scope.",
+    "aliases": ["scope", "local variable", "global variable", "local scope", "global scope", "variable lifetime", "block scope", "field scope", "scope rules"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Functions & Methods",
+    "slug": "default-parameter",
+    "displayNameDe": "Standardparameter",
+    "displayNameEn": "Default Parameter",
+    "description": "A function parameter that has a preset value used when no argument is supplied.",
+    "aliases": ["default argument", "optional parameter", "default value", "default parameter value", "keyword argument", "named argument", "optional argument"],
+    "languages": ["python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "class-definition",
+    "displayNameDe": "Klassendefinition",
+    "displayNameEn": "Class Definition",
+    "description": "A blueprint that defines the structure and behavior of objects.",
+    "aliases": ["class", "class declaration", "defining a class", "class design", "POJO", "data class", "model class", "class body", "class keyword"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "object-instantiation",
+    "displayNameDe": "Objekterzeugung",
+    "displayNameEn": "Object Instantiation",
+    "description": "Creating an instance of a class using the new keyword or a constructor call.",
+    "aliases": ["creating objects", "new keyword", "object creation", "instantiation", "new instance", "constructor call", "object", "objects", "creating an object", "new MyClass()"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "constructor",
+    "displayNameDe": "Konstruktor",
+    "displayNameEn": "Constructor",
+    "description": "A special method called when an object is created, used to initialize its fields.",
+    "aliases": ["__init__", "constructor method", "class constructor", "initialization method", "default constructor", "parameterized constructor", "init method"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "inheritance",
+    "displayNameDe": "Vererbung",
+    "displayNameEn": "Inheritance",
+    "description": "A mechanism by which a class acquires the properties and methods of another class.",
+    "aliases": ["extends", "subclass", "superclass", "parent class", "child class", "base class", "derived class", "class hierarchy", "is-a relationship", "super()", "inherits"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "polymorphism",
+    "displayNameDe": "Polymorphismus",
+    "displayNameEn": "Polymorphism",
+    "description": "The ability of objects of different classes to be treated as instances of a common superclass.",
+    "aliases": ["overriding", "dynamic dispatch", "runtime polymorphism", "subtype polymorphism", "upcasting", "dynamic binding", "polymorphic behavior"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "encapsulation",
+    "displayNameDe": "Kapselung",
+    "displayNameEn": "Encapsulation",
+    "description": "Bundling data and methods within a class while restricting direct access to internal state.",
+    "aliases": ["information hiding", "data hiding", "private fields", "access modifiers", "public private protected", "visibility modifiers", "access control"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "interface",
+    "displayNameDe": "Interface (Schnittstelle)",
+    "displayNameEn": "Interface",
+    "description": "A contract that defines a set of methods a class must implement, without providing an implementation.",
+    "aliases": ["java interface", "implements", "interface definition", "contract", "TypeScript interface", "abstract interface", "functional interface", "interface keyword"],
+    "languages": ["java", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "abstract-class",
+    "displayNameDe": "Abstrakte Klasse",
+    "displayNameEn": "Abstract Class",
+    "description": "A class that cannot be instantiated and may define abstract methods to be implemented by subclasses.",
+    "aliases": ["abstract", "abstract method", "abstract class", "ABC", "abstract base class", "abstract keyword"],
+    "languages": ["java", "python"],
+    "level": "advanced"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "method-overriding",
+    "displayNameDe": "Methoden-Überschreibung",
+    "displayNameEn": "Method Overriding",
+    "description": "Redefining an inherited method in a subclass to provide a more specific implementation.",
+    "aliases": ["@Override", "overriding", "override", "overridden method", "polymorphic method", "method override", "subclass override"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "static-member",
+    "displayNameDe": "Statisches Feld / Statische Methode",
+    "displayNameEn": "Static Member",
+    "description": "A class-level field or method shared by all instances, accessed without creating an object.",
+    "aliases": ["static field", "static method", "class method", "class variable", "@staticmethod", "class-level", "static keyword", "static context", "static variable"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Object-Oriented Programming",
+    "slug": "getter-setter",
+    "displayNameDe": "Getter und Setter",
+    "displayNameEn": "Getter and Setter",
+    "description": "Methods that provide controlled read and write access to private class fields.",
+    "aliases": ["getters", "setters", "accessor", "mutator", "accessor methods", "get set", "property accessor", "@property", "getX()", "setX()", "getter method", "setter method"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Error Handling",
+    "slug": "try-catch",
+    "displayNameDe": "Try-Catch-Block",
+    "displayNameEn": "Try-Catch Block",
+    "description": "A block structure that separates normal execution code from error-handling code.",
+    "aliases": ["try catch", "try/catch", "exception handling", "try-catch-finally", "try except", "except", "catch block", "catching exceptions", "error handling", "try block"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Error Handling",
+    "slug": "throw",
+    "displayNameDe": "Exception werfen",
+    "displayNameEn": "Throwing an Exception",
+    "description": "Explicitly signaling an error condition by raising an exception object.",
+    "aliases": ["throws", "throw statement", "raise", "raise exception", "throw exception", "throwing", "exception throwing", "raise ValueError", "throw new"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Error Handling",
+    "slug": "finally",
+    "displayNameDe": "Finally-Block",
+    "displayNameEn": "Finally Block",
+    "description": "A code block that always executes after a try-catch, regardless of whether an exception occurred.",
+    "aliases": ["finally block", "try-finally", "cleanup code", "always executes", "finally clause"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Error Handling",
+    "slug": "custom-exception",
+    "displayNameDe": "Eigene Exception-Klasse",
+    "displayNameEn": "Custom Exception",
+    "description": "A user-defined exception class that extends a built-in exception to represent domain-specific errors.",
+    "aliases": ["custom exception class", "user-defined exception", "exception class", "extending exception", "RuntimeException subclass", "custom error", "defining exceptions", "Exception subclass"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Input / Output",
+    "slug": "console-output",
+    "displayNameDe": "Konsolenausgabe",
+    "displayNameEn": "Console Output",
+    "description": "Printing text or values to the standard output (console/terminal).",
+    "aliases": ["print", "println", "System.out.println", "print()", "console.log", "output", "printing", "display output", "standard output", "stdout", "System.out.print", "console output"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Input / Output",
+    "slug": "console-input",
+    "displayNameDe": "Konsoleneingabe",
+    "displayNameEn": "Console Input",
+    "description": "Reading user input from the standard input (keyboard/console).",
+    "aliases": ["Scanner", "input()", "readline", "BufferedReader", "System.in", "keyboard input", "user input", "stdin", "reading input", "scanner.nextLine", "scanner.nextInt", "prompt user"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Input / Output",
+    "slug": "file-reading",
+    "displayNameDe": "Dateilesen",
+    "displayNameEn": "File Reading",
+    "description": "Opening and reading data from a file stored on disk.",
+    "aliases": ["read file", "FileReader", "open file", "file input", "BufferedReader file", "file stream", "reading files", "file I/O", "open() read", "readLine()", "Files.readAllLines"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Input / Output",
+    "slug": "file-writing",
+    "displayNameDe": "Dateischreiben",
+    "displayNameEn": "File Writing",
+    "description": "Creating or modifying a file by writing data to it.",
+    "aliases": ["write file", "FileWriter", "file output", "writing to file", "PrintWriter", "output stream", "Files.write", "open() write", "BufferedWriter", "write to disk"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "String Operations",
+    "slug": "string-concatenation",
+    "displayNameDe": "String-Verkettung",
+    "displayNameEn": "String Concatenation",
+    "description": "Combining two or more strings into a single string using the + operator or similar methods.",
+    "aliases": ["string joining", "concatenation", "string addition", "string +", "append string", "StringBuilder", "string builder", "string.join", "f-string", "format string", "template literal", "string interpolation", "join strings", "+ operator"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "String Operations",
+    "slug": "string-methods",
+    "displayNameDe": "String-Methoden",
+    "displayNameEn": "String Methods",
+    "description": "Built-in functions for manipulating strings, such as length, substring, replace, and toUpperCase.",
+    "aliases": ["string functions", "string operations", "substring", "length()", "charAt()", "toUpperCase", "toLowerCase", "trim()", "contains()", "startsWith", "endsWith", "string manipulation", "string API", "replace()", "indexOf()"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "String Operations",
+    "slug": "string-comparison",
+    "displayNameDe": "String-Vergleich",
+    "displayNameEn": "String Comparison",
+    "description": "Comparing two strings for equality or ordering, using methods like equals() or compareTo().",
+    "aliases": ["equals()", "string equals", "compareTo", "comparing strings", "string equality", "equalsIgnoreCase", "string comparison operator", "string =="],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "String Operations",
+    "slug": "string-parsing",
+    "displayNameDe": "String-Parsing",
+    "displayNameEn": "String Parsing",
+    "description": "Converting a string into another data type, such as an integer or float.",
+    "aliases": ["parseInt", "parseFloat", "int()", "float()", "type conversion from string", "string to int", "string to number", "valueOf", "number parsing", "Integer.parseInt", "Double.parseDouble", "str to int"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "String Operations",
+    "slug": "string-splitting",
+    "displayNameDe": "String-Aufteilen",
+    "displayNameEn": "String Splitting",
+    "description": "Dividing a string into parts using a delimiter character or pattern.",
+    "aliases": ["split()", "str.split", "tokenizing", "tokenizer", "StringTokenizer", "split string", "delimiter", "string.split", "split by comma", "split by space"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "String Operations",
+    "slug": "regular-expressions",
+    "displayNameDe": "Reguläre Ausdrücke",
+    "displayNameEn": "Regular Expressions",
+    "description": "Pattern descriptions used to search, match, or replace text within strings.",
+    "aliases": ["regex", "regexp", "Pattern", "Matcher", "re module", "pattern matching", "regular expression", "string patterns", "matches()", "replaceAll regex"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Types & Variables",
+    "slug": "variable-declaration",
+    "displayNameDe": "Variablendeklaration",
+    "displayNameEn": "Variable Declaration",
+    "description": "Defining a named storage location with a specific data type and optionally an initial value.",
+    "aliases": ["variable", "declaring variables", "var", "let", "const", "int x", "assignment", "variable assignment", "variable initialization", "declaring a variable", "local variable declaration"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Types & Variables",
+    "slug": "data-types",
+    "displayNameDe": "Datentypen",
+    "displayNameEn": "Data Types",
+    "description": "The classification of data values, such as int, float, boolean, char, or String.",
+    "aliases": ["primitive types", "int float boolean", "data type", "type system", "primitive data types", "basic types", "number types", "bool", "char", "byte", "double", "long", "String type"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Types & Variables",
+    "slug": "type-casting",
+    "displayNameDe": "Typumwandlung",
+    "displayNameEn": "Type Casting",
+    "description": "Converting a value from one data type to another, either explicitly (cast) or implicitly (coercion).",
+    "aliases": ["casting", "type conversion", "int to double", "widening", "narrowing", "explicit cast", "implicit cast", "(int)", "type coercion", "type promotion"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Types & Variables",
+    "slug": "constants",
+    "displayNameDe": "Konstanten",
+    "displayNameEn": "Constants",
+    "description": "Named values that are assigned once and cannot be changed during program execution.",
+    "aliases": ["final", "const", "final variable", "constant variable", "immutable value", "static final", "UPPER_CASE", "final keyword", "readonly"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Types & Variables",
+    "slug": "boolean-logic",
+    "displayNameDe": "Boolesche Logik",
+    "displayNameEn": "Boolean Logic",
+    "description": "Expressions using logical operators (AND, OR, NOT) to combine or negate boolean conditions.",
+    "aliases": ["boolean expression", "logical operators", "&&", "||", "!", "and or not", "logical and", "logical or", "logical not", "boolean operations", "truth value", "boolean algebra"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Types & Variables",
+    "slug": "arithmetic-operators",
+    "displayNameDe": "Arithmetische Operatoren",
+    "displayNameEn": "Arithmetic Operators",
+    "description": "Operators for performing mathematical calculations: addition, subtraction, multiplication, division, and modulo.",
+    "aliases": ["math operators", "arithmetic", "addition subtraction multiplication division", "modulo", "modulus", "+", "-", "*", "/", "%", "math operations", "calculation", "increment", "decrement", "++", "--"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Types & Variables",
+    "slug": "comparison-operators",
+    "displayNameDe": "Vergleichsoperatoren",
+    "displayNameEn": "Comparison Operators",
+    "description": "Operators that compare two values and return a boolean result: ==, !=, <, >, <=, >=.",
+    "aliases": ["relational operators", "equals operator", "==", "!=", "<", ">", "<=", ">=", "comparison", "comparing values", "equality operator", "greater than", "less than"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Algorithms & Problem Solving",
+    "slug": "sorting",
+    "displayNameDe": "Sortierung",
+    "displayNameEn": "Sorting",
+    "description": "Arranging elements of a collection in a defined order, such as ascending or descending.",
+    "aliases": ["sort", "Arrays.sort", "Collections.sort", "sorted()", "bubble sort", "selection sort", "insertion sort", "merge sort", "quicksort", "sorting algorithm", ".sort()", "order elements"],
+    "languages": ["java", "python", "javascript"],
+    "level": "intermediate"
+  },
+  {
+    "category": "Algorithms & Problem Solving",
+    "slug": "linear-search",
+    "displayNameDe": "Lineare Suche",
+    "displayNameEn": "Linear Search",
+    "description": "Sequentially examining elements of a collection one by one to find a target value.",
+    "aliases": ["searching", "linear search", "sequential search", "search algorithm", "find element", "indexOf", "searching algorithm", "array search", "brute force search"],
+    "languages": ["java", "python", "javascript"],
+    "level": "beginner"
+  },
+  {
+    "category": "Algorithms & Problem Solving",
+    "slug": "binary-search",
+    "displayNameDe": "Binäre Suche",
+    "displayNameEn": "Binary Search",
+    "description": "An efficient search algorithm that repeatedly divides a sorted collection in half to locate a value.",
+    "aliases": ["binary search algorithm", "logarithmic search", "divide and conquer search", "Arrays.binarySearch", "bisect", "halving search", "sorted search"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Advanced Concepts",
+    "slug": "list-comprehension",
+    "displayNameDe": "List Comprehension",
+    "displayNameEn": "List Comprehension",
+    "description": "A concise Python syntax for creating lists by applying an expression to each element of an iterable, optionally with filtering.",
+    "aliases": ["list comprehensions", "comprehension", "python comprehension", "[x for x in]", "generator expression", "dict comprehension", "set comprehension", "comprehension syntax"],
+    "languages": ["python"],
+    "level": "advanced"
+  },
+  {
+    "category": "Advanced Concepts",
+    "slug": "iterator",
+    "displayNameDe": "Iterator",
+    "displayNameEn": "Iterator",
+    "description": "An object that enables sequential traversal of a collection without exposing its internal structure.",
+    "aliases": ["Iterable", "Iterator", "iterable", "Iterator pattern", "next()", "hasNext()", "iter()", "java iterator", "for-each iterator", "custom iterator"],
+    "languages": ["java", "python", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Advanced Concepts",
+    "slug": "generics",
+    "displayNameDe": "Generics (Typparameter)",
+    "displayNameEn": "Generics",
+    "description": "A mechanism for writing type-safe, reusable code that works with different data types specified at compile time.",
+    "aliases": ["type parameters", "generic types", "ArrayList<Integer>", "List<String>", "<T>", "typed collections", "parameterized types", "TypeScript generics", "generic class", "generic method"],
+    "languages": ["java", "javascript"],
+    "level": "advanced"
+  },
+  {
+    "category": "Advanced Concepts",
+    "slug": "decorator",
+    "displayNameDe": "Dekorator",
+    "displayNameEn": "Decorator",
+    "description": "A Python design pattern using the @ syntax to modify or extend the behavior of functions or classes.",
+    "aliases": ["@decorator", "python decorator", "@property", "@staticmethod", "@classmethod", "function decorator", "decorator pattern", "@ syntax"],
+    "languages": ["python"],
+    "level": "advanced"
+  },
+  {
+    "category": "Advanced Concepts",
+    "slug": "async-await",
+    "displayNameDe": "Asynchrone Programmierung (async/await)",
+    "displayNameEn": "Async / Await",
+    "description": "A syntax for writing asynchronous, non-blocking code that reads like synchronous code.",
+    "aliases": ["async", "await", "asynchronous", "Promise", "async function", "async programming", "non-blocking", "coroutine", "asyncio", "async/await", "async-await"],
+    "languages": ["javascript", "python"],
+    "level": "advanced"
+  },
+  {
+    "category": "Advanced Concepts",
+    "slug": "stream-api",
+    "displayNameDe": "Stream-API",
+    "displayNameEn": "Stream API",
+    "description": "A Java API for processing collections of data in a declarative, pipeline-oriented functional style.",
+    "aliases": ["streams", "Java streams", "stream()", "filter map reduce", "java stream api", "java 8 streams", "Stream<T>", "collect()", "Collectors", "stream pipeline"],
+    "languages": ["java"],
+    "level": "advanced"
+  }
+]
