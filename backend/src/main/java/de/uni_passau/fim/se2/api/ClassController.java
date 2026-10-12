@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -18,10 +18,14 @@
  */
 package de.uni_passau.fim.se2.api;
 
+import de.uni_passau.fim.se2.api.dto.AddFimStudentsRequest;
+import de.uni_passau.fim.se2.api.dto.BulkCreateStudentsRequest;
 import de.uni_passau.fim.se2.api.dto.CreateClassRequest;
 import de.uni_passau.fim.se2.api.dto.CreateStudentRequest;
 import de.uni_passau.fim.se2.application.service.ClassService;
 import de.uni_passau.fim.se2.domain.entities.ClassDTO;
+import de.uni_passau.fim.se2.domain.entities.StudentProgressDetailDTO;
+import de.uni_passau.fim.se2.domain.entities.StudentTaskStateDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -115,6 +120,44 @@ public class ClassController {
     }
 
     /**
+     * Adds a whole class list at once, as read from a teacher's CSV.
+     *
+     * All or nothing: a single unusable row rejects the request naming that row,
+     * rather than leaving the teacher with a half-imported class.
+     *
+     * @param id      the UUID of the class
+     * @param request the request body containing one first/last name pair per student
+     * @return the created students, each with the invite token to send them
+     */
+    @PostMapping("/{id}/students/bulk")
+    public ResponseEntity<List<ClassDTO.StudentInfo>> createStudents(
+            @PathVariable UUID id,
+            @RequestBody BulkCreateStudentsRequest request) {
+        // No @Valid: the service does the checking, so a bad row comes back as
+        // a 400 naming it rather than as the catch-all's generic 500.
+        List<ClassService.NewStudent> rows = request.getStudents() == null ? List.of()
+                : request.getStudents().stream()
+                        .map(s -> new ClassService.NewStudent(s.getFirstName(), s.getLastName()))
+                        .toList();
+        return ResponseEntity.ok(classService.createStudents(id, rows));
+    }
+
+    /**
+     * Adds students by FIM username, whether or not they have logged in to CodeOwl yet.
+     *
+     * @param id      the UUID of the class
+     * @param request the FIM usernames, one typed in or many from a CSV
+     * @return the added students
+     */
+    @PostMapping("/{id}/students/fim")
+    public ResponseEntity<List<ClassDTO.StudentInfo>> addFimStudents(
+            @PathVariable UUID id,
+            @RequestBody AddFimStudentsRequest request) {
+        // No @Valid, as for the CSV import: the service names the offending username.
+        return ResponseEntity.ok(classService.addFimStudents(id, request.getUsernames()));
+    }
+
+    /**
      * Resets a student's password to a teacher-readable temporary password.
      * The student must change it on next login.
      *
@@ -179,6 +222,55 @@ public class ClassController {
     }
 
     /**
+     * Sets when a worksheet opens and closes for this class.
+     *
+     * Any field may be omitted or null to lift that constraint: no release means
+     * available at once, no deadline means open indefinitely, no grace period
+     * means the deadline is sharp.
+     */
+    @PutMapping("/{id}/worksheets/{worksheetId}/schedule")
+    public ResponseEntity<?> setWorksheetSchedule(
+            @PathVariable UUID id,
+            @PathVariable UUID worksheetId,
+            @RequestBody WorksheetScheduleRequest request) {
+        classService.setWorksheetSchedule(id, worksheetId,
+                request.releaseAt(), request.deadlineAt(), request.graceMinutes());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Publishes an assignment immediately, so the class can see it.
+     *
+     * A newly assigned worksheet is hidden until this is called or its release
+     * date arrives, so students never meet one that is still being prepared.
+     */
+    @PostMapping("/{id}/worksheets/{worksheetId}/publish")
+    public ResponseEntity<?> publishWorksheet(@PathVariable UUID id, @PathVariable UUID worksheetId) {
+        classService.setWorksheetPublished(id, worksheetId, true);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Takes an assignment back out of sight, e.g. one published by mistake. */
+    @PostMapping("/{id}/worksheets/{worksheetId}/unpublish")
+    public ResponseEntity<?> unpublishWorksheet(@PathVariable UUID id, @PathVariable UUID worksheetId) {
+        classService.setWorksheetPublished(id, worksheetId, false);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Ends an assignment now: the deadline becomes this moment, so students may
+     * still read the tasks but no longer work on them.
+     */
+    @PostMapping("/{id}/worksheets/{worksheetId}/close")
+    public ResponseEntity<?> closeWorksheet(@PathVariable UUID id, @PathVariable UUID worksheetId) {
+        classService.closeWorksheetNow(id, worksheetId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** All fields optional; null clears that part of the schedule. */
+    public record WorksheetScheduleRequest(Instant releaseAt, Instant deadlineAt, Integer graceMinutes) {}
+
+    /**
      * Toggles tracking for a specified class.
      *
      * @param id   the UUID of the class
@@ -207,5 +299,39 @@ public class ClassController {
     public ResponseEntity<List<Map<String, Object>>> getClassProgress(@PathVariable UUID classId) {
         List<Map<String, Object>> progress = classService.getClassProgress(classId);
         return ResponseEntity.ok(progress);
+    }
+
+    /**
+     * One student's work across this class's assigned worksheets: every task,
+     * how many times they attempted it, and whether it was solved.
+     *
+     * @param classId   the UUID of the class
+     * @param studentId the UUID of the student
+     */
+    @GetMapping("/{classId}/students/{studentId}/progress")
+    public ResponseEntity<StudentProgressDetailDTO> getStudentProgressDetail(
+            @PathVariable UUID classId,
+            @PathVariable UUID studentId) {
+        return ResponseEntity.ok(classService.getStudentProgressDetail(classId, studentId));
+    }
+
+    /**
+     * What one student last built for one task, beside the solution it was meant to become.
+     *
+     * <p>Class-scoped on purpose. The arrangement is keyed by student and task alone, so reading
+     * it needs a reason, and the reason is that this class was assigned the worksheet the task
+     * sits in. That also keeps the authorization identical to the progress page this is opened
+     * from, rather than inventing a second story for the same data.
+     *
+     * @param classId   the UUID of the class
+     * @param studentId the UUID of the student
+     * @param taskId    the UUID of the task, which must belong to this class's worksheets
+     */
+    @GetMapping("/{classId}/students/{studentId}/tasks/{taskId}/state")
+    public ResponseEntity<StudentTaskStateDTO> getStudentTaskState(
+            @PathVariable UUID classId,
+            @PathVariable UUID studentId,
+            @PathVariable UUID taskId) {
+        return ResponseEntity.ok(classService.getStudentTaskState(classId, studentId, taskId));
     }
 }

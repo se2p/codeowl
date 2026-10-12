@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useTranslation } from "react-i18next";
 
 export default function StudentOnboardingPage() {
     const { t } = useTranslation();
+    const [searchParams] = useSearchParams();
     const [step, setStep] = useState<"token" | "form" | "done">("token");
-    const [tokenInput, setTokenInput] = useState("");
+    // Invite links carry the token as ?token=… (see ClassDetailPage); prefill it so the
+    // student only has to confirm. Stays editable in case the link was copied badly.
+    const [tokenInput, setTokenInput] = useState(() => searchParams.get("token")?.trim() ?? "");
     const [studentName, setStudentName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.UUID;
 
@@ -45,6 +46,9 @@ public class TieredTaskSequenceRowMapper implements RowMapper<TieredTaskSequence
         }
 
         dto.setTaskDescription(rs.getString("task_description"));
+        if (hasColumn(rs, "title")) {
+            dto.setTitle(rs.getString("title"));
+        }
         dto.setVersionId(rs.getObject("version_id", UUID.class));
         String strategyId = rs.getObject("strategyname", String.class);
         dto.setStrategyName(strategyId);
@@ -69,7 +73,34 @@ public class TieredTaskSequenceRowMapper implements RowMapper<TieredTaskSequence
 
         // AP19: Parse curriculum_topic_id
         dto.setCurriculumTopicId(rs.getObject("curriculum_topic_id", UUID.class));
+        // Provenance; absent from queries that predate the column, hence the guard.
+        if (hasColumn(rs, "copied_from")) {
+            dto.setCopiedFrom(rs.getObject("copied_from", UUID.class));
+        }
+        // Whether that copy has since been edited. Same guard, same reason.
+        if (hasColumn(rs, "diverged_at")) {
+            var diverged = rs.getTimestamp("diverged_at");
+            dto.setDivergedAt(diverged == null ? null : diverged.toInstant());
+        }
 
         return dto;
+    }
+
+    /**
+     * Whether the result set carries a column.
+     *
+     * <p>This mapper is shared by several queries, and not all of them select every column —
+     * {@code loadAll} and {@code findByOwnerId} have their own column lists. Asking first is
+     * cheaper than keeping every one of them in step, and far cheaper than the alternative,
+     * which is a mapper that throws on the query that forgot a column.
+     */
+    private static boolean hasColumn(ResultSet rs, String column) throws SQLException {
+        ResultSetMetaData meta = rs.getMetaData();
+        for (int i = 1; i <= meta.getColumnCount(); i++) {
+            if (column.equalsIgnoreCase(meta.getColumnLabel(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

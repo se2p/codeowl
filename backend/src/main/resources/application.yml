@@ -23,6 +23,38 @@ spring:
     hibernate:
       ddl-auto: none
 
+  # Flyway is the sole source of truth for schema, run automatically on every backend
+  # startup against src/main/resources/db/migration (default location, so nothing to
+  # set for that). It replaces the old db/init bootstrap, which the Postgres image only
+  # ran against an empty volume and so never reached an already-existing database.
+  #
+  # baseline-version matters only the first time Flyway meets a database it has never
+  # tracked before (no flyway_schema_history table) but that already has tables in it --
+  # a database migrated the old, pre-Flyway way. Flyway then records that database as
+  # already up to date through baseline-version, without re-running anything at or below
+  # it, and applies only what comes after. It does nothing to a database Flyway already
+  # tracks, and nothing to a genuinely empty one (that one just runs V1 onward normally).
+  #
+  # The default here is 6: the last db/init file (6_migration_split_plan.sql) that
+  # existed in the v.1.0 release, which is the schema production is actually on. A
+  # database at a different pre-Flyway state -- a development database carried further
+  # by hand, say -- needs its own true version here instead; there is no way to infer it
+  # from the schema itself, which is why this is a number to set deliberately per
+  # environment (FLYWAY_BASELINE_VERSION) rather than a default to trust everywhere.
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: ${FLYWAY_BASELINE_VERSION:6}
+    baseline-description: "codeowl v.1.0 release"
+    # V1 is a pg_dump of real data, and some of it (a prompt template's own
+    # ${...} placeholder syntax) looks exactly like Flyway's own placeholder
+    # syntax. Flyway's placeholder scan runs over the raw SQL text regardless of
+    # where it appears -- including inside a COPY block's data -- and refuses to
+    # proceed over one it cannot resolve. This project has no actual use for
+    # Flyway placeholders, so turning the feature off entirely is correct, not a
+    # workaround for this one file.
+    placeholder-replacement: false
+
 # === Auth / JWT ===
 auth:
   jwt:
@@ -31,6 +63,16 @@ auth:
   root-admin-email: ${ROOT_ADMIN_EMAIL:}
   app:
     base-url: ${APP_BASE_URL:http://localhost:5173}
+
+# === FIM-Account login (LDAP bind, see LdapFimAccountDirectory) ===
+# Users bind as "uid=<username>,<base>".
+spring.ldap:
+  urls: ${LDAP_URL:ldaps://ldap01.fim.uni-passau.de/}
+  base: ${LDAP_BASE:ou=users,dc=fim,dc=uni-passau,dc=de}
+
+# Spring Boot would otherwise add an LDAP check to /actuator/health that
+# connects to the FIM server on every health request.
+management.health.ldap.enabled: false
 
 # === Mail (optional, falls nicht konfiguriert -> Console-Fallback) ===
 spring.mail:

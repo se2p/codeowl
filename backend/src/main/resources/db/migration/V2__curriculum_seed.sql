@@ -1,6 +1,12 @@
 -- ════════════════════════════════════════════════════════════
 -- AP19: Curriculum Seed Data — LehrplanPLUS Bayern Informatik (G9)
 -- Runs AFTER z_codeowl_schema.sql (alphabetical: zz_ > z_)
+--
+-- NOTE: the German below is deliberately transliterated (ae/oe/ue) and there
+-- is no English here. 11_migration_curriculum_i18n.sql runs after this file
+-- and rewrites both: it respells these names with umlauts and fills the
+-- name_en/description_en/track_en columns. Add new topics here, then add
+-- their translations there.
 -- ════════════════════════════════════════════════════════════
 
 

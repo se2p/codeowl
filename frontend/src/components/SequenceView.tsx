@@ -1,22 +1,25 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { useTranslation } from "react-i18next";
 import type { TieredTaskSequence } from "../types/models";
+import { taskName } from "../lib/taskName";
 
 interface Props {
     sequence: TieredTaskSequence;
 }
 
 export const SequenceView: React.FC<Props> = ({ sequence }) => {
+    const { t } = useTranslation();
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const navigate = useNavigate();
 
     const tasks = [...sequence.tasks].sort((a, b) => a.tierLevel - b.tierLevel);
-    const selectedTask = tasks.find((t) => t.id === selectedTaskId);
+    const selectedTask = tasks.find((task) => task.id === selectedTaskId);
 
     return (
         <div>
-            <h2 className="mb-3">Generated Tasks</h2>
+            <h2 className="mb-3">{t("sequence.generatedTasks")}</h2>
             <div className="row">
                 {tasks.map((task) => (
                     <div className="col-md-4 mb-3" key={task.id}>
@@ -26,7 +29,7 @@ export const SequenceView: React.FC<Props> = ({ sequence }) => {
                             onClick={() => setSelectedTaskId(task.id)}
                         >
                             <div className="card-body">
-                                <h5 className="card-title">{`Tier ${task.tierLevel}`}</h5>
+                                <h5 className="card-title">{taskName(task, t)}</h5>
                                 <p className="card-text">
                                     {task.statement.length > 60
                                         ? task.statement.slice(0, 60) + "..."
@@ -41,7 +44,7 @@ export const SequenceView: React.FC<Props> = ({ sequence }) => {
                                         });
                                     }}
                                 >
-                                    Solve Parson's Problem
+                                    {t("sequence.solveParsons")}
                                 </button>
                             </div>
                         </div>
@@ -52,8 +55,8 @@ export const SequenceView: React.FC<Props> = ({ sequence }) => {
             {selectedTask && (
                 <div className="card mt-3">
                     <div className="card-body">
-                        <h5 className="card-title">{`Tier ${selectedTask.tierLevel}`}</h5>
-                        <b>Aufgabenstellung:</b>
+                        <h5 className="card-title">{taskName(selectedTask, t)}</h5>
+                        <b>{t("sequence.statementLabel")}</b>
                         <ReactMarkdown>{selectedTask.statement}</ReactMarkdown>
                     </div>
                 </div>

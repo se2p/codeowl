@@ -1,21 +1,87 @@
 {
   "nav": {
     "userManagement": "Userverwaltung",
-    "manualCreator": "Manual Creator",
+    "researchLogs": "Forschungsdaten",
+    "automaticCreator": "Automatischer Editor",
+    "manualCreator": "Manueller Editor",
     "classes": "Klassen",
     "myClasses": "Meine Klassen",
     "logout": "Abmelden",
     "login": "Anmelden",
     "help": "Hilfe",
-    "feedback": "Feedback",
-    "teacherSurvey": "Lehrer-Umfrage",
-    "studentSurvey": "Schüler-Umfrage",
     "curriculum": "Lehrplan",
     "library": "Bibliothek",
+    "marketplace": "Marktplatz",
     "libraryAdmin": "Tag-Kuratierung",
-    "databaseTools": "Datenbank-Tools"
+    "databaseTools": "Datenbank-Tools",
+    "worksheets": "Arbeitsblätter",
+    "contact": "Kontakt",
+    "imprint": "Impressum"
   },
 
+  "contactPage": {
+    "pageTitle": "Kontakt – CodeOwl",
+    "heading": "Kontakt",
+    "subheading": "Wer CodeOwl entwickelt, und wie Sie uns erreichen.",
+    "teamHeading": "Die Menschen hinter CodeOwl",
+    "teamBody": "CodeOwl entsteht an der Universität Passau am Lehrstuhl für Software Engineering II unter der Leitung von Prof. Dr. Gordon Fraser.",
+    "chairLink": "Lehrstuhl für Software Engineering II",
+    "questionsHeading": "Fragen, Probleme und Vorschläge",
+    "questionsBody": "Wenn eine generierte Aufgabe nicht passt, ein Hinweis verwirrend ist oder eine Funktion fehlt, eröffnen Sie bitte ein Issue. So ist die Antwort auch für alle anderen sichtbar, denen dieselbe Frage begegnet, statt in einer einzelnen E-Mail zu verschwinden.",
+    "issueLink": "Ein Issue auf GitHub melden",
+    "githubLink": "CodeOwl auf GitHub",
+    "institutionalHeading": "Kontaktdaten der Institution"
+  },
+
+  "imprintPage": {
+    "pageTitle": "Impressum – CodeOwl",
+    "heading": "Impressum",
+    "subheading": "Wer diese Website herausgibt, und wer für ihren Inhalt verantwortlich ist.",
+    "publisherHeading": "Herausgeber",
+    "structureHeading": "Struktur und Rechtsform",
+    "structureBody": "Die Universität Passau ist eine Körperschaft des öffentlichen Rechts und zugleich staatliche Einrichtung gemäß Art. 11 Abs. 1 des Bayerischen Hochschulgesetzes (BayHSchG). Die Universität untersteht der Rechts- und Fachaufsicht des Bayerischen Staatsministeriums für Wissenschaft und Kunst, Salvatorstr. 2, 80333 München.",
+    "representationHeading": "Vertretung",
+    "representationBody": "Die Universität Passau wird durch ihren Präsidenten, Prof. Dr. Jan Schumann, vertreten. Die Gesamtverantwortung für den Inhalt dieser Website trägt der Präsident der Universität Passau. Für Beiträge, die mit dem Namen einer Autorin oder eines Autors gekennzeichnet sind oder einem eigenen rechtlichen Hinweis unterliegen, sind die jeweiligen Autorinnen und Autoren verantwortlich."
+  },
+
+  "marketplace": {
+    "pageTitle": "Arbeitsblatt-Marktplatz",
+    "title": "Marktplatz",
+    "subtitle": "Arbeitsblätter, die andere Lehrkräfte veröffentlicht haben. Kopiere sie in deinen eigenen Bereich und passe sie an.",
+    "searchLabel": "Suchen",
+    "searchPlaceholder": "z. B. Rekursion, Arrays, Klausurvorbereitung …",
+    "langLabel": "Programmiersprache",
+    "allLangs": "Alle Sprachen",
+    "sortLabel": "Sortierung",
+    "sort": {
+      "recent": "Neueste",
+      "relevance": "Relevanz",
+      "popularity": "Am häufigsten kopiert"
+    },
+    "onlyMine": "Nur meine",
+    "clearFilters": "Filter zurücksetzen",
+    "loading": "Lade Arbeitsblätter …",
+    "errorLoading": "Der Marktplatz konnte nicht geladen werden.",
+    "errorCopying": "Das Arbeitsblatt konnte nicht kopiert werden.",
+      "errorGone": "Dieses Arbeitsblatt ist nicht mehr verfügbar. Vermutlich wurde es zurückgezogen oder gelöscht.",
+    "resultCount": "{{count}} Arbeitsblatt/Arbeitsblätter",
+    "emptyTitle": "Nichts gefunden.",
+    "emptyFiltered": "Versuche es mit weniger Filtern oder einem anderen Suchbegriff.",
+    "emptyNothingPublished": "Es hat noch niemand ein Arbeitsblatt veröffentlicht. Du kannst der/die Erste sein — die Sichtbarkeit stellst du auf der Arbeitsblatt-Seite ein.",
+    "untitled": "Ohne Titel",
+    "sequenceCount": "{{count}} Sequenz(en)",
+    "copyCountTooltip": "So oft wurde dieses Arbeitsblatt kopiert",
+    "alreadyCopied": "Bereits kopiert",
+    "backToMarketplace": "Zurück zum Marktplatz",
+    "open": "Öffnen",
+    "copy": "Kopieren",
+    "copying": "Kopiere …",
+    "copyTooltip": "In meinen Bereich kopieren und anpassen",
+    "copyAgainTooltip": "Du hast dieses Arbeitsblatt schon kopiert — dies erstellt eine weitere Kopie",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "pageOf": "Seite {{page}} von {{total}}"
+  },
   "library": {
     "title": "Aufgabenbibliothek",
     "searchLabel": "Suchen",
@@ -42,6 +108,7 @@
     "alreadyInLibrary": "In deiner Bibliothek",
     "alreadyInLibraryTooltip": "Diese Sequenz liegt bereits in einem deiner Arbeitsblätter.",
     "copyLoginRequired": "Bitte anmelden, um Sequenzen zu kopieren",
+    "addToWorksheetLoginRequired": "Bitte anmelden, um Sequenzen zu einem Arbeitsblatt hinzuzufügen",
     "copyToast": {
       "addedTitle": "Zu „{{name}}“ hinzugefügt",
       "alreadyTitle": "Bereits in „{{name}}“ vorhanden",
@@ -79,6 +146,12 @@
       "any": "Beliebig",
       "all": "Alle"
     },
+    "activeConcepts": "Aktive Konzepte",
+    "removeConcept": "Konzept „{{concept}}“ entfernen",
+    "conceptMode": {
+      "any": "Beliebig",
+      "all": "Alle"
+    },
     "ownerLabel": "Besitzer",
     "ownerAny": "Alle",
     "ownerMe": "Nur meine",
@@ -87,6 +160,14 @@
     "tierAny": "Beliebig",
     "tagsLabel": "Tags",
     "noTagsYet": "Noch keine Tags verfügbar",
+    "hideTags": "Ausblenden",
+    "showTags": "Anzeigen",
+    "showMoreTags": "Mehr anzeigen",
+    "conceptsLabel": "Konzepte",
+    "noConceptsYet": "Noch keine Konzepte verfügbar",
+    "hideConcepts": "Ausblenden",
+    "showConcepts": "Anzeigen",
+    "showMoreConcepts": "Mehr anzeigen",
     "editTags": "Tags bearbeiten",
     "doneEditing": "Fertig",
     "addTags": "Tags hinzufügen",
@@ -107,6 +188,8 @@
   },
 
   "home": {
+    "pageTitle": "CodeOwl – Gestufte Aufgaben generieren",
+    "distractorsEnabled": "Distraktoren generieren (Parsons)",
     "title": "Code Owl",
     "subtitle": "Generiere gestufte Parsons-Aufgaben. Schnellere Differenzierung für den Informatikunterricht.",
     "codeSnippet": "Code-Snippet",
@@ -115,7 +198,7 @@
     "problemStatement": "Aufgabenstellung",
     "describeProblem": "Beschreibe das Problem...",
     "programmingLanguage": "Programmiersprache (z.B. Java, Python...)",
-    "concepts": "Konzepte, kommagetrennt (z.B. Schleifen, Arrays)",
+    "concepts": "Konzepte",
     "targetLanguage": "Sprache der Aufgabenstellung",
     "targetLanguageDe": "Deutsch",
     "targetLanguageEn": "Englisch",
@@ -124,6 +207,7 @@
     "reset": "Zurücksetzen",
     "worksheet": "Arbeitsblatt",
     "error": "Fehler",
+    "errorUnsupportedLanguage": "Dieser Code-Schnipsel ist weder Python noch Java. CodeOwl kann Aufgabensequenzen nur für Sprachen generieren, die es analysieren kann — bitte Python- oder Java-Code einfügen.",
     "preview": "Vorschau",
     "new": "Neu",
     "tips": "Tipps",
@@ -153,12 +237,12 @@
     "whitelistPlaceholder": "z.B. if, for, while, print",
     "whitelistHint": "Kommagetrennt. Wenn gesetzt, dürfen NUR diese Konstrukte vorkommen.",
     "difficultySlope": "Schwierigkeitsanstieg",
-    "slopeGentle": "Sanft — gleichmässiger Anstieg",
+    "slopeGentle": "Sanft — gleichmäßiger Anstieg",
     "slopeModerate": "Moderat — Standard (Standard)",
-    "slopeSteep": "Steil — grosser Sprung zu Tier 3",
+    "slopeSteep": "Steil — großer Sprung zu Tier 3",
     "additionalContext": "Lehrer-Anweisungen",
     "additionalContextPlaceholder": "z.B. Deutsche Variablennamen verwenden, Fokus auf String-Manipulation",
-    "additionalContextHint": "Freitext-Anweisungen, die in den Generierungsprompt einfliessen.",
+    "additionalContextHint": "Freitext-Anweisungen, die in den Generierungsprompt einfließen.",
     "tierCount": "Anzahl Stufen",
     "tierCount3": "3 Stufen — Standard (Leicht / Mittel / Schwer)",
     "tierCount5": "5 Stufen — Erweitert (Erkennung → Synthese)",
@@ -166,8 +250,31 @@
   },
 
   "sequence": {
+    "curatorNoticeTitle": "Diese Sequenz gehört jemand anderem.",
+    "curatorNoticeBody": "Du siehst sie, weil sie in einem deiner Arbeitsblätter liegt. Änderungen würden sie auch in den Arbeitsblättern anderer verändern — erstelle dafür eine eigene Kopie.",
+    "forkToEdit": "Eigene Kopie zum Bearbeiten",
+    "forking": "Wird kopiert …",
+    "forkFailed": "Die Kopie konnte nicht erstellt werden.",
+    "pageTitle": "Sequenz-Seite",
+    "devTemplate": "DEV-Vorlage",
+    "teacherBanner": "Lehrer-Modus",
+    "copyLinkTitle": "Kopiert den Link zu dieser Sequenz",
+    "typeLabel": "Typ:",
+    "generatedTasks": "Generierte Aufgaben",
+    "solveParsons": "Parsons-Aufgabe lösen",
+    "statementLabel": "Aufgabenstellung:",
+    "tierLabel": "Aufgabe {{n}}",
     "title": "Gestufte Aufgabensequenz",
     "language": "Sprache",
+    "uuid": "UUID",
+    "copyUuidTitle": "UUID in die Zwischenablage kopieren",
+    "concepts": "Konzepte",
+    "conceptsNone": "keine",
+    "conceptsEdit": "Konzepte bearbeiten",
+    "conceptsEditLocked": "Nur die Besitzerin oder der Besitzer kann die Konzepte ändern. Erstelle zuerst eine eigene Kopie.",
+    "conceptsDone": "Fertig",
+    "conceptsEditHint": "Änderungen werden sofort gespeichert.",
+    "conceptsSaveError": "Konzepte konnten nicht gespeichert werden.",
     "libraryTags": "Bibliothek-Tags",
     "llmTagLoading": "Semantik-Tag wird berechnet",
     "shareSequence": "Sequenz teilen",
@@ -175,9 +282,17 @@
     "codeSnippet": "Code-Snippet",
     "constraints": "Generierungseinschränkungen",
     "taskDescription": "Aufgabenbeschreibung",
+    "taskDescriptionEdit": "Aufgabenbeschreibung bearbeiten",
+    "taskDescriptionSaveError": "Die Aufgabenbeschreibung konnte nicht gespeichert werden.",
     "tasks": "Aufgaben",
     "noTasks": "Keine Aufgaben gefunden.",
-    "tier": "Stufe {{level}}",
+    "tier": "Aufgabe {{level}}",
+    "renameTask": "Aufgabe umbenennen",
+    "renameTaskHint": "Leer lassen, um den Standardnamen zu verwenden.",
+    "renameTaskError": "Die Aufgabe konnte nicht umbenannt werden.",
+    "renameSequence": "Sequenz umbenennen",
+    "renameSequenceHint": "Leer lassen, um die Standardüberschrift zu verwenden.",
+    "renameSequenceError": "Die Sequenz konnte nicht umbenannt werden.",
     "solveTask": "Aufgabe lösen",
     "reviewTask": "Aufgabe prüfen",
     "editTask": "Bearbeiten",
@@ -206,21 +321,135 @@
     "batchGenerateDistractors": "Distraktoren für alle Aufgaben generieren",
     "distractorsActive": "Aktiv für Schüler",
     "distractorsInactive": "Deaktiviert für Schüler",
-    "similarTitle": "Das könnte dich auch interessieren"
+    "similarTitle": "Das könnte dich auch interessieren",
+    "addToWorksheet": "Zu Arbeitsblatt hinzufügen",
+    "addToWorksheetTitle": "Zu einem deiner Arbeitsblätter hinzufügen",
+    "loadingWorksheets": "Arbeitsblätter werden geladen...",
+    "noWorksheets": "Du hast noch keine Arbeitsblätter erstellt.",
+    "manageWorksheets": "Arbeitsblätter verwalten",
+    "errorLoadingWorksheets": "Deine Arbeitsblätter konnten nicht geladen werden.",
+    "addToWorksheetSuccess": "Zu „{{name}}“ hinzugefügt!",
+    "addToWorksheetError": "Die Sequenz konnte nicht zum Arbeitsblatt hinzugefügt werden.",
+    "alreadyInWorksheet": "Bereits hinzugefügt",
+    "add": "Hinzufügen"
   },
 
   "solve": {
+    "closedBanner": "Die Abgabefrist für dieses Arbeitsblatt ist abgelaufen. Du kannst die Aufgabe ansehen, aber nicht mehr bearbeiten.",
+    "closedTooltip": "Abgabefrist abgelaufen",
+    "redo": "Aufgabe erneut lösen",
+    "startOver": "Neu beginnen",
+    "alreadySolvedHint": "Du hast diese Aufgabe bereits gelöst. Mit „Aufgabe erneut lösen“ kannst du sie noch einmal bearbeiten.",
+    "restoredNote": "Deine gelöste Anordnung wurde wiederhergestellt.",
+    "creditsExhausted": "Alle Hinweis-Credits für diese Aufgabe sind aufgebraucht.",
+    "creditsInsufficient": "Nicht genug Credits: dieser Hinweis kostet {{cost}}, du hast noch {{remaining}}.",
+    "creditsBadgeTitle": "Verbleibende Hinweis-Credits für diese Aufgabe",
+    "pageTitle": "Aufgabe | CodeOwl",
     "home": "Home",
     "backToSequence": "Zurück zur Sequenz",
     "copyFailed": "Kopieren fehlgeschlagen",
     "indentationWarning": "Einrückung ist wichtig in Python — diese Zeile ist nicht korrekt.",
     "positionCorrectIndentWrong": "Richtige Position aber falsche Einrückung (wird nicht bewertet).",
     "distractorBanner": "Achtung — nicht alle Blöcke werden für die Lösung benötigt. Manche Blöcke sind Distraktoren und sollten im Quellbereich bleiben.",
-    "contextBanner": "Die graün Code-Blöcke ober- und unterhalb des Puzzle-Bereichs sind fester Kontext — sie stehen bereits an der richtigen Stelle. Ordne nur die hervorgehobenen Blöcke.",
-    "contextLabel": "Kontext (nur lesen)"
+    "contextBanner": "Die grauen Code-Blöcke ober- und unterhalb des Puzzle-Bereichs sind fester Kontext — sie stehen bereits an der richtigen Stelle. Ordne nur die hervorgehobenen Blöcke.",
+    "contextLabel": "Kontext (nur lesen)",
+    "noTaskId": "Keine Aufgaben-ID angegeben.",
+    "sourceHeading": "Verfügbare Blöcke",
+    "targetHeading": "Baue hier deine Lösung",
+
+    "no_matching": "Der hervorgehobene Block ({{line}}) ist laut Syntax nicht korrekt eingerückt.",
+    "grader_order": "Manche Blöcke sind falsch oder in der falschen Reihenfolge. Verschiebe, entferne oder ersetze die hervorgehobenen Blöcke.",
+    "grader_lines_too_many": "Dein Programm hat zu viele Blöcke.",
+    "grader_lines_missing": "Dein Programm hat zu wenige Blöcke.",
+    "grader_indent_python": "Die Einrückung stimmt nicht — in Python ist sie Teil der Logik.",
+
+    "teacherBanner": "Lehrer-Modus — Musterlösungen sind unten rechts sichtbar",
+    "teacherTools": "Lehrer-Werkzeuge",
+    "showModelSolution": "Musterlösung anzeigen",
+
+    "loadingTask": "Aufgabe wird geladen…",
+    "errorLabel": "Fehler:",
+    "apiError": "Fehler bei der API-Anfrage",
+
+    "copyLinkTitle": "Kopiert den Link zu dieser Aufgabe",
+    "copied": "Kopiert!",
+    "shareTask": "Aufgabe teilen",
+
+    "taskLabel": "Aufgabe:",
+    "tierAndLanguage": "{{name}} · Sprache {{language}}",
+
+    "interactionMode": "Interaktionsmodus",
+    "dragMode": "Ziehen",
+    "dragModeTitle": "Blöcke per Drag-and-drop umsortieren",
+    "clickMode": "Klicken",
+    "clickModeTitle": "Klicke einen Block an um ihn auszuwählen, dann klicke auf die Zielposition. Pfeiltasten zum Umsortieren, Tab zum Wechseln zwischen den Bereichen.",
+
+    "shuffleLines": "Zeilen mischen",
+    "feedback": "Überprüfe meine Lösung",
+
+    "hint": "Hinweis",
+    "hintTitle": "Zeigt dir, welche Blöcke problematisch sind",
+    "explain": "Erklär es mir",
+    "explainTitle": "Detaillierte Erklärung vom Tutor",
+    "feedbackFirst": "Klicke zuerst auf „Überprüfe meine Lösung“",
+    "hintErrorLabel": "Hinweis-Fehler:",
+    "explanationLabel": "Erklärung:",
+    "hintDragFirst": "Ziehe zuerst einige Blöcke in den Lösungsbereich.",
+    "hintLoadFailed": "Hinweis konnte nicht geladen werden.",
+
+    "solvedTitle": "Richtig gelöst!",
+    "solvedFirstTry": "Beim ersten Versuch — hervorragend!",
+    "solvedAfterAttempts": "In {{attempts}} Versuchen geschafft.",
+    "selfReportQuestion": "Wie sicher bist du, dass du es beim nächsten Mal wieder könntest?",
+    "selfReportScale": "1 = unsicher · 5 = sehr sicher",
+    "nextTask": "Nächste Aufgabe",
+    "close": "Schließen",
+    "toOverview": "Zur Übersicht"
   },
 
+
+  "schedule": {
+    "endNotRunning": "Nur ein laufendes Arbeitsblatt kann beendet werden.",
+    "publishNow": "Jetzt freigeben",
+    "unpublish": "Zurückziehen",
+    "endNow": "Jetzt beenden",
+    "actionFailed": "Aktion konnte nicht ausgeführt werden.",
+    "dateLabel": "Datum",
+    "timeLabel": "Uhrzeit",
+    "minutesShort": "Min.",
+    "hoursShort": "Std.",
+    "graceMinutesLabel": "Nachfrist, Minuten",
+    "graceHours": "Nachfrist, Stunden",
+    "grace": "Nachfrist",
+    "scheduled": "Noch nicht freigegeben",
+    "open": "Offen",
+    "closed": "Abgabefrist abgelaufen",
+    "edit": "Zeitplan bearbeiten",
+    "hide": "Zeitplan ausblenden",
+    "releaseAt": "Freigabe ab",
+    "releaseHint": "Leer = sofort verfügbar; Uhrzeit leer = 0:00 Uhr",
+    "deadlineAt": "Abgabefrist",
+    "deadlineHint": "Leer = unbegrenzt offen; Uhrzeit leer = 0:00 Uhr",
+    "graceHint": "Leer oder 0 = Frist ist hart",
+    "graceInvalid": "Stunden und Minuten müssen ganze Zahlen ab 0 sein.",
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "clear": "Felder leeren",
+    "saveFailed": "Zeitplan konnte nicht gespeichert werden."
+  },
+  "deadline": {
+    "next": "Als Nächstes fällig: {{name}} – {{when}}",
+    "due": "Fällig {{when}}",
+    "closed": "Frist abgelaufen",
+    "was": "Frist war {{when}}"
+  },
   "worksheet": {
+    "backToClass": "Zurück zur Klasse",
+    "unlimitedHints": "Unbegrenzte Hinweise",
+    "creditsPerTask": "Credits pro Aufgabe",
+    "creditsHelp": "Stufe 1 kostet 1, Stufe 2 kostet 2.",
+    "pageTitle": "Arbeitsblatt-Ansicht",
+    "copyLinkTitle": "Kopiert den Link zu diesem Arbeitsblatt",
     "teacherMode": "Lehrer-Ansicht",
     "hideTeacherMode": "Lehrer-Ansicht ausblenden",
     "teacherBanner": "Lehrer-Modus — Arbeitsblatt-Bearbeitung und Sequenz-Verwaltung aktiviert",
@@ -236,18 +465,55 @@
     "copying": "Kopiere...",
     "assign": "Zuweisen",
     "shareWorksheet": "Arbeitsblatt teilen",
+    "notAvailable": "Dieses Arbeitsblatt gibt es nicht (mehr), oder es ist nicht für dich freigegeben.",
+    "visibility": {
+      "legend": "Sichtbarkeit",
+      "saving": "Wird gespeichert …",
+      "error": "Die Sichtbarkeit konnte nicht geändert werden. Bitte erneut versuchen.",
+      "PRIVATE": {
+        "label": "Nur ich",
+        "hint": "Niemand sonst kann das Arbeitsblatt öffnen — auch nicht über einen Link."
+      },
+      "UNLISTED": {
+        "label": "Über Link",
+        "hint": "Wer den Link hat, kann es öffnen. Es taucht in keiner Suche auf. So verhielten sich Arbeitsblätter bisher."
+      },
+      "PUBLIC": {
+        "label": "Im Marktplatz",
+        "hint": "Andere Lehrkräfte finden es über die Suche und können es in ihren eigenen Bereich kopieren."
+      }
+    },
     "copied": "Kopiert!",
     "addSequence": "Sequenz hinzufügen",
+    "foreignSequence": "fremd",
+    "sequenceLabel": "Sequenz {{index}}",
+    "sequenceIdTooltip": "Sequenz-ID: {{id}}",
     "sequences": "Sequenzen in diesem Arbeitsblatt",
     "noSequences": "Dieses Arbeitsblatt enthält noch keine Sequenzen.",
     "removeSequence": "Sequenz aus Arbeitsblatt entfernen",
+    "dragToReorder": "Zum Umsortieren ziehen",
+    "errorReordering": "Die neue Reihenfolge konnte nicht gespeichert werden.",
+    "detailLevelHeading": "Details",
+    "detailLevelLabel": "Detailgrad pro Sequenz",
+    "detailLevelNone": "Keine",
+    "detailLevelSome": "Einige",
+    "detailLevelAll": "Alle",
     "addSequenceTitle": "Sequenz zum Arbeitsblatt hinzufügen",
     "sequenceUuid": "Sequenz-UUID",
     "sequenceUuids": "Sequenz-UUIDs (Komma, Leerzeichen oder Zeilenumbruch getrennt)",
+    "searchInsert": "Suchen",
     "singleInsert": "Einzeln",
     "batchInsert": "Batch",
     "enterUuid": "Sequenz-ID (UUID) eingeben",
     "pasteUuids": "Mehrere UUIDs einfügen",
+    "searchSequenceLabel": "Sequenz suchen",
+    "searchSequencePlaceholder": "Suche nach Beschreibung, Tag oder Sprache...",
+    "loadingSequences": "Sequenzen werden geladen...",
+    "noMatchingSequences": "Keine passenden Sequenzen gefunden.",
+    "untitledSequence": "Unbenannte Sequenz",
+    "ownSequence": "Eigene",
+    "tierCount": "{{count}} Stufen",
+    "errorSelectSequence": "Bitte wähle eine Sequenz aus der Liste.",
     "linkSequence": "Sequenz verknüpfen",
     "linking": "Verknüpfe...",
     "assignTitle": "Arbeitsblatt einer Klasse zuweisen",
@@ -255,7 +521,7 @@
     "noClasses": "Du hast noch keine Klassen erstellt.",
     "manageClasses": "Klassen verwalten",
     "loadingClasses": "Klassen werden geladen...",
-    "close": "Schliessen",
+    "close": "Schließen",
     "tips": "Arbeitsblatt-Tipps",
     "tip1": "Du kannst <strong>Sequenzen hinzufügen</strong> per UUID oder Batch-Eingabe.",
     "tip2": "Nutze das <strong>Papierkorb-Symbol</strong> um Sequenzen zu entfernen.",
@@ -277,7 +543,18 @@
     "noAccount": "Noch kein Account? ",
     "register": "Registrieren (Lehrer)",
     "studentToken": "Schüler-Token einlösen",
+    "fimAccount": "Mit FIM-Account anmelden",
     "failed": "Login fehlgeschlagen."
+  },
+
+  "fimLogin": {
+    "title": "Mit FIM-Account anmelden",
+    "username": "FIM-Benutzername",
+    "password": "Passwort",
+    "submit": "Anmelden",
+    "submitting": "Anmelden...",
+    "failed": "Login fehlgeschlagen.",
+    "backToLogin": "Zurück zum Login"
   },
 
   "register": {
@@ -379,6 +656,7 @@
     "emailRequired": "Email darf nicht leer sein.",
     "emailChanged": "Email geändert.",
     "passwordSection": "Passwort",
+    "passwordManagedByFim": "Du meldest dich mit deinem FIM-Account an, dein Passwort wird daher dort verwaltet und kann in CodeOwl nicht geändert werden.",
     "currentPassword": "Aktuelles Passwort",
     "newPassword": "Neues Passwort",
     "confirmPassword": "Neues Passwort bestätigen",
@@ -391,6 +669,9 @@
     "noWorksheets": "Noch keine Arbeitsblätter erstellt.",
     "mySequences": "Meine Sequenzen",
     "noSequences": "Noch keine Sequenzen generiert.",
+    "deleteSequence": "Sequenz löschen",
+    "deleteSequenceConfirm": "Diese Sequenz löschen? Sie verschwindet aus der Bibliothek und aus dieser Liste. Arbeitsblätter, die sie bereits enthalten, behalten sie.",
+    "deleteSequenceFailed": "Die Sequenz konnte nicht gelöscht werden.",
     "logout": "Abmelden"
   },
 
@@ -412,14 +693,37 @@
     "create": "Erstellen",
     "emptyStudent": "Du bist noch keiner Klasse zugeordnet.",
     "emptyTeacher": "Noch keine Klassen vorhanden. Erstelle deine erste Klasse!",
-    "deleteClass": "Klasse löschen"
+    "deleteClass": "Klasse löschen",
+    "createdBy": "Erstellt von {{name}}",
+    "unknownOwner": "unbekannt"
+  },
+
+  "worksheets": {
+    "pageTitle": "CodeOwl – Arbeitsblätter",
+    "title": "Arbeitsblattverwaltung",
+    "newWorksheet": "Neues Arbeitsblatt",
+    "deleteConfirm": "Arbeitsblatt wirklich löschen? Alle Sequenz-Verknüpfungen und Klassenzuweisungen werden entfernt.",
+    "errorLoading": "Fehler beim Laden der Arbeitsblätter.",
+    "errorCreating": "Fehler beim Erstellen des Arbeitsblatts.",
+    "errorDeleting": "Fehler beim Löschen.",
+    "loading": "Laden...",
+    "createTitle": "Neues Arbeitsblatt erstellen",
+    "name": "Name *",
+    "namePlaceholder": "z.B. Woche 3 — Arrays und Schleifen",
+    "description": "Beschreibung",
+    "descPlaceholder": "Optionale Beschreibung...",
+    "creating": "Erstelle...",
+    "create": "Erstellen",
+    "empty": "Noch keine Arbeitsblätter vorhanden. Erstelle dein erstes Arbeitsblatt!",
+    "deleteWorksheet": "Arbeitsblatt löschen",
+    "sequenceCount": "{{count}} Sequenz(en)"
   },
 
   "classDetail": {
     "loading": "Laden...",
     "notFound": "Klasse nicht gefunden.",
     "back": "Zurück",
-    "backToOverview": "Zurück zur übersicht",
+    "backToOverview": "Zurück zur Übersicht",
     "updated": "Klasse aktualisiert.",
     "errorUpdating": "Fehler beim Aktualisieren.",
     "save": "Speichern",
@@ -456,16 +760,25 @@
     "errorToggleTracking": "Fehler beim Umschalten des Trackings.",
     "trackingOn": "Fortschritt-Tracking aktiviert.",
     "trackingOff": "Fortschritt-Tracking deaktiviert.",
-    "worksheets": "Worksheets ({{count}})",
-    "assignWorksheet": "Worksheet zuweisen",
-    "worksheetUuidPlaceholder": "Worksheet-UUID eingeben",
+    "worksheets": "Arbeitsblätter ({{count}})",
+    "assignWorksheet": "Arbeitsblatt zuweisen",
+    "worksheetSearchPlaceholder": "Arbeitsblatt nach Name suchen oder UUID einfügen",
+    "worksheetSearchHint": "Tippen, um deine Arbeitsblätter zu durchsuchen, oder direkt eine Arbeitsblatt-UUID einfügen.",
+    "loadingWorksheets": "Arbeitsblätter werden geladen...",
+    "noMatchingWorksheets": "Keine passenden Arbeitsblätter gefunden.",
     "assignBtn": "Zuweisen",
-    "noWorksheets": "Noch keine Worksheets zugewiesen.",
-    "openWorksheet": "Worksheet öffnen",
+    "noWorksheets": "Noch keine Arbeitsblätter zugewiesen.",
+    "openWorksheet": "Arbeitsblatt öffnen",
     "removeAssignment": "Zuweisung entfernen",
-    "removeWorksheetConfirm": "Worksheet \"{{name}}\" wirklich von der Klasse entfernen?",
-    "worksheetAssigned": "Worksheet zugewiesen.",
+    "removeWorksheetConfirm": "Arbeitsblatt \"{{name}}\" wirklich von der Klasse entfernen?",
+    "worksheetAssigned": "Arbeitsblatt zugewiesen.",
     "errorAssigning": "Fehler beim Zuweisen.",
+    "createWorksheet": "Arbeitsblatt erstellen",
+    "createWorksheetBtn": "Erstellen",
+    "newWorksheetNamePlaceholder": "Name des Arbeitsblatts",
+    "newWorksheetDescPlaceholder": "Beschreibung (optional)",
+    "worksheetCreated": "Arbeitsblatt erstellt und zugewiesen.",
+    "errorCreatingWorksheet": "Fehler beim Erstellen des Arbeitsblatts.",
     "resetPassword": "Temporäres Passwort setzen",
     "resetPasswordTitle": "Temporäres Passwort setzen",
     "resetPasswordConfirm": "Für {{name}} ein temporäres Passwort generieren? Der Schüler muss es beim nächsten Login ändern.",
@@ -473,7 +786,93 @@
     "resetPasswordSuccess": "Temporäres Passwort für {{name}}:",
     "resetPasswordOnce": "Dieses Passwort wird nur einmal angezeigt und ist nach der Änderung ungültig.",
     "resetPasswordBtn": "Passwort generieren",
-    "errorResetPassword": "Fehler beim Zurücksetzen des Passworts."
+    "errorResetPassword": "Fehler beim Zurücksetzen des Passworts.",
+    "downloadUnregistered": "Nicht Registrierte herunterladen (CSV)",
+    "downloadUnregisteredTitle": "CSV mit noch nicht registrierten Schülern und ihrem Einladungslink herunterladen."
+  },
+
+  "studentProgress": {
+    "pageTitle": "Schülerfortschritt",
+    "backToClass": "Zurück zur Klasse",
+    "title": "Fortschritt von {{name}}",
+    "viewDetails": "Fortschrittsdetails anzeigen",
+    "errorLoading": "Fehler beim Laden der Fortschrittsdaten.",
+    "noWorksheets": "Dieser Klasse sind noch keine Arbeitsblätter zugewiesen.",
+    "noSequences": "Keine Sequenzen in diesem Arbeitsblatt.",
+    "sequenceHeading": "Sequenz {{index}}",
+    "tierHeader": "Stufe",
+    "statementHeader": "Aufgabe",
+    "attemptsHeader": "Versuche",
+    "statusHeader": "Status",
+    "solved": "Gelöst",
+    "attempted": "Versucht",
+    "notAttempted": "Nicht versucht",
+    "stateHeader": "Letzter Stand",
+    "stateButton": "Ansehen",
+    "stateButtonTitle": "Zeigen, was dieser Schüler zuletzt für diese Aufgabe gebaut hat",
+    "stateTitle": "{{name}} — letzter Stand",
+    "stateLoading": "Wird geladen…",
+    "stateError": "Der letzte Stand dieses Schülers konnte nicht geladen werden.",
+    "stateStudentColumn": "Stand des Schülers",
+    "stateSolutionColumn": "Erwartete Lösung",
+    "stateNothingSaved": "Dieser Schüler hat für diese Aufgabe noch nichts angeordnet.",
+    "stateEmptySolution": "Der Lösungsbereich war leer.",
+    "stateSolved": "Gelöst",
+    "stateInProgress": "In Bearbeitung",
+    "stateSavedAt": "gespeichert {{when}}",
+    "stateGapNote": "In Lücken eingetippte Werte werden nicht aufgezeichnet und fehlen daher in den Blöcken."
+  },
+
+  "csvImport": {
+    "button": "CSV importieren",
+    "title": "Schüler aus einer CSV-Datei importieren",
+    "hint": "Zwei Spalten: Vorname und Nachname. Eine Kopfzeile ist optional, als Trennzeichen funktionieren Komma, Semikolon und Tabulator.",
+    "template": "Vorlage herunterladen",
+    "fileLabel": "CSV-Datei",
+    "preview": "{{count}} Schüler werden angelegt:",
+    "previewMore": "… und {{count}} weitere",
+    "createBtn": "{{count}} Schüler anlegen",
+    "creating": "Wird angelegt…",
+    "cancel": "Abbrechen",
+    "created": "{{count}} Schüler angelegt.",
+    "downloadLinks": "Einladungslinks herunterladen (CSV)",
+    "downloadHint": "Eine Zeile pro Schüler, mit dem Link zum Einrichten des Zugangs.",
+    "colFirstName": "Vorname",
+    "colLastName": "Nachname",
+    "colInviteLink": "Einladungslink",
+    "errorEmpty": "In dieser Datei wurden keine Schüler gefunden.",
+    "errorColumns": "Zeile {{row}}: zwei Spalten (Vorname, Nachname) erwartet, aber {{count}} gefunden.",
+    "errorMissingName": "Zeile {{row}}: Vor- und Nachname sind beide erforderlich.",
+    "errorNameTooLong": "Zeile {{row}}: Namen dürfen höchstens {{max}} Zeichen lang sein.",
+    "errorTooMany": "{{count}} Zeilen — es können höchstens {{max}} Schüler auf einmal importiert werden.",
+    "errorRead": "Die Datei konnte nicht gelesen werden.",
+    "errorCreating": "Fehler beim Importieren der Schüler."
+  },
+
+  "fimStudents": {
+    "button": "FIM-Accounts hinzufügen",
+    "title": "Schüler mit FIM-Account hinzufügen",
+    "hint": "Die Schüler melden sich mit ihrem FIM-Benutzernamen und Passwort an. Du kannst sie hinzufügen, bevor sie sich jemals bei CodeOwl angemeldet haben; ihr Name erscheint nach der ersten Anmeldung.",
+    "usernameLabel": "FIM-Benutzername",
+    "usernamePlaceholder": "z. B. mustermann",
+    "add": "Hinzufügen",
+    "csvLabel": "Mehrere auf einmal aus einer CSV-Datei",
+    "csvHint": "Ein FIM-Benutzername pro Zeile. Eine Kopfzeile ist optional.",
+    "preview": "{{count}} FIM-Accounts werden hinzugefügt:",
+    "previewMore": "… und {{count}} weitere",
+    "importBtn": "{{count}} FIM-Accounts hinzufügen",
+    "importing": "Wird hinzugefügt…",
+    "cancel": "Abbrechen",
+    "imported": "{{count}} FIM-Accounts hinzugefügt.",
+    "added": "{{count}} FIM-Accounts zur Klasse hinzugefügt.",
+    "badgeTitle": "Meldet sich mit diesem FIM-Account an",
+    "errorInvalid": "„{{value}}“ ist kein gültiger FIM-Benutzername (Kleinbuchstaben, Ziffern, Punkt, Binde- oder Unterstrich, keine Email-Adresse).",
+    "errorInvalidRow": "Zeile {{row}}: „{{value}}“ ist kein gültiger FIM-Benutzername.",
+    "errorColumns": "Zeile {{row}}: eine Spalte (FIM-Benutzername) erwartet, aber {{count}} gefunden.",
+    "errorEmpty": "In dieser Datei wurden keine FIM-Benutzernamen gefunden.",
+    "errorTooMany": "{{count}} Benutzernamen — es können höchstens {{max}} auf einmal hinzugefügt werden.",
+    "errorRead": "Die Datei konnte nicht gelesen werden.",
+    "errorAdding": "Fehler beim Hinzufügen der FIM-Accounts."
   },
 
   "admin": {
@@ -567,17 +966,37 @@
         "colStatus": "Status",
         "colProgress": "Fortschritt",
         "colStarted": "Gestartet"
+      },
+      "reclassifyConcepts": {
+        "title": "Bulk-Konzept-Neuklassifizierung",
+        "subtitle": "Startet einen Hintergrund-Job, der die LLM-Konzepterkennung erneut ausführt — nützlich, wenn das Konzept-Arsenal gewachsen ist (ein neu getipptes Konzept oder ein neu zugeordnetes Lehrplan-Konzept), damit ältere Sequenzen es ebenfalls erhalten können. Antwortet sofort mit einer Job-ID — Fortschritt wird alle 2 Sekunden aktualisiert.",
+        "filterLabel": "Filter",
+        "filterMissing": "Nur Sequenzen ganz ohne Konzepte (empfohlen)",
+        "filterAll": "Alle Sequenzen (überschreibt bestehende Konzepte, wenn das LLM welche findet)",
+        "warningAll": "Achtung: \"Alle\" klassifiziert neu und kann bestehende Konzepte überschreiben, und verbraucht für jede Sequenz LLM-Credits (~0,5 ct/Sequenz). Die meisten Sequenzen haben bereits Konzepte aus der Generierung — deshalb ist diese Option, nicht \"fehlende Konzepte\", diejenige, die Material tatsächlich gegen ein erweitertes Konzept-Arsenal neu prüft.",
+        "start": "Job starten",
+        "starting": "Startet…",
+        "errorStart": "Job konnte nicht gestartet werden — bitte erneut versuchen.",
+        "activeJob": "Aktiver Job",
+        "progress": "{{processed}} / {{total}} Sequenzen",
+        "recentJobs": "Letzte Jobs (dieser Session)",
+        "noRecentJobs": "Noch keine Jobs in dieser Session.",
+        "colFilter": "Filter",
+        "colStatus": "Status",
+        "colProgress": "Fortschritt",
+        "colStarted": "Gestartet"
       }
     }
   },
 
   "manual": {
-    "title": "Manual Task Creator",
+    "pageTitle": "CodeOwl – Manueller Aufgaben-Editor",
+    "title": "Manueller Aufgaben-Editor",
     "subtitle": "Erstelle Parsons-Puzzle-Aufgaben aus deinem eigenen Code — ohne KI-Generierung.",
     "sequenceSettings": "Sequenz-Einstellungen",
     "programmingLanguage": "Programmiersprache *",
     "languagePlaceholder": "z.B. Java, Python",
-    "conceptsLabel": "Konzepte, kommagetrennt (z.B. Schleifen, Arrays)",
+    "conceptsLabel": "Konzepte",
     "tier": "Stufe {{level}}",
     "removeTier": "Stufe entfernen",
     "addTier": "Stufe hinzufügen",
@@ -594,6 +1013,9 @@
     "characters": "{{count}} Zeichen",
     "creating": "Erstelle...",
     "createSequence": "Sequenz erstellen",
+    "generateDistractors": "Distraktoren für alle Stufen generieren (Parsons)",
+    "generatingDistractors": "Distraktoren werden generiert...",
+    "distractorsFailed": "Die Sequenz wurde erstellt, aber die Distraktoren konnten nicht generiert werden. Du kannst sie auf der Sequenzseite erneut erzeugen.",
     "cancel": "Abbrechen",
     "error": "Fehler: {{msg}}",
     "blockPreview": "Block-Vorschau — Stufe {{level}}",
@@ -612,10 +1034,17 @@
     "conceptRequired": "Mindestens ein Konzept ist erforderlich.",
     "statementRequired": "Stufe {{level}}: Aufgabenstellung ist erforderlich.",
     "solutionRequired": "Stufe {{level}}: Code-Lösung ist erforderlich.",
-    "errorCreating": "Fehler beim Erstellen der manüllen Aufgabe."
+    "errorCreating": "Fehler beim Erstellen der manuellen Aufgabe."
   },
 
   "taskEdit": {
+    "distractors": "Distraktoren",
+    "distractorsPlaceholder": "Ein Distraktor pro Zeile, jeweils mit #distractor am Ende",
+    "distractorsHelp": "Jede Zeile muss mit #distractor enden. Verwende #swap oder #group nicht in Distraktor-Zeilen.",
+    "distractorPlan": "Plan",
+    "gapModeTrim": "trim (Standard)",
+    "gapModeExact": "exakt",
+    "gapModeCi": "ohne Groß-/Kleinschreibung",
     "title": "Aufgabe bearbeiten",
     "statement": "Aufgabenstellung",
     "code": "Code / Lösung",
@@ -645,6 +1074,7 @@
   },
 
   "splitEditor": {
+    "removeDistractor": "Distraktor entfernen",
     "title": "Inline-Split (AP31)",
     "help": "Zeile wählen → Trennpunkte per Klick zwischen den Zeichen setzen (2–4 Fragmente). Optionaler Fragment-Distraktor.",
     "fragments": "{{count}} Frag.",
@@ -661,12 +1091,15 @@
 
   "curriculum": {
     "title": "Lehrplan-Bibliothek",
-    "subtitle": "Generiere Parsons-Aufgaben direkt aus dem bayerischen Informatik-Lehrplan (LehrplanPLUS G9).",
-    "selectGrade": "Jahrgangsstufe wählen",
+    "subtitle": "Generiere Parsons-Aufgaben direkt aus dem Lehrplan: bayerischer Informatik-Lehrplan (LehrplanPLUS G9) und Hochschulmodule.",
+    "selectGrade": "Jahrgangsstufe oder Modul wählen",
     "selectTopic": "Lernbereich wählen",
     "noSubTopics": "Keine Unterthemen für dieses Thema verfügbar.",
     "examples": "Beispielaufgaben ({{count}})",
     "noExamples": "Keine Beispielaufgaben für dieses Thema vorhanden.",
+    "sequenceCountTooltip": "{{count}} Sequenz(en) existieren bereits für dieses Thema",
+    "viewSequences": "Sequenzen ansehen",
+    "viewSequencesDisabled": "Diesem Thema sind noch keine Konzepte zugeordnet, daher gibt es nichts, wonach die Bibliothek gefiltert werden könnte.",
     "generate": "Aufgabe generieren",
     "generating": "Wird generiert...",
     "language": "Programmiersprache",
@@ -677,7 +1110,7 @@
     "split": "Inline-Split-Blöcke generieren (Beta)",
     "freeText": "Freitext zur Wunsch-Aufgabe",
     "freeTextPlaceholder": "z. B. rekursiv lösbar, Bezug zu Tieren, deutsche Variablennamen, Fokus auf Schleifen …",
-    "freeTextHint": "Alles, was die generierte Aufgabe berücksichtigen soll — fliesst direkt in den Generierungsprompt ein.",
+    "freeTextHint": "Alles, was die generierte Aufgabe berücksichtigen soll — fließt direkt in den Generierungsprompt ein.",
     "topicNotAvailable": "Das wurde noch nicht eingepflegt und ist deshalb noch nicht verfügbar",
     "manageExamples": "Beispiele verwalten (Admin)",
     "addExample": "Beispiel hinzufügen",
@@ -703,10 +1136,55 @@
     "beta": "Beta",
     "errorGenerating": "Fehler bei der Generierung.",
     "errorLoading": "Fehler beim Laden der Lehrplan-Daten.",
-    "successGenerated": "Sequenz erfolgreich generiert!"
+    "successGenerated": "Sequenz erfolgreich generiert!",
+    "addArea": "Lernbereich hinzufügen",
+    "newArea": "Neuer Lernbereich",
+    "fieldGradeLevel": "Jahrgangsstufe",
+    "fieldTrack": "Ausbildungsrichtung",
+    "fieldTrackEn": "Ausbildungsrichtung (Englisch)",
+    "fieldName": "Name",
+    "fieldNameEn": "Name (Englisch)",
+    "fieldDescription": "Beschreibung",
+    "fieldDescriptionEn": "Beschreibung (Englisch)",
+    "fieldLearningArea": "Lernbereich (Lehrplan-Bezeichnung)",
+    "fieldLearningAreaHint": "z. B. „Inf9 LB3: Softwareentwicklung“ — erscheint im Generierungsprompt.",
+    "gradeLabelHint": "Der angezeigte Name entsteht aus Jahrgangsstufe und Ausbildungsrichtung, z. B. „Jgst. 11 — NTG“.",
+    "englishHint": "Ohne englische Übersetzung wird der deutsche Text angezeigt.",
+    "saveTopic": "Speichern",
+    "topicSaveError": "Konnte nicht gespeichert werden.",
+    "addTopLevel": "Eintrag hinzufügen",
+    "newTopLevel": "Neuer Lehrplan-Eintrag",
+    "topLevelKind": "Art",
+    "kindGrade": "Jahrgangsstufe",
+    "kindModule": "Modul",
+    "kindModuleHint": "Ein Modul trägt seinen eigenen Namen, z. B. „Programmieren 1“ — ohne Jahrgangsstufe.",
+    "fieldEducationLevel": "Bildungsbereich",
+    "levelSchool": "Schule",
+    "levelUniversity": "Hochschule",
+    "levelAll": "Alle",
+    "filterLevel": "Bildungsbereich",
+    "editTopLevel": "Eintrag bearbeiten",
+    "editArea": "Lernbereich bearbeiten",
+    "editEntry": "Bearbeiten",
+    "kindSwitchHint": "Die Art lässt sich ändern: ohne Jahrgangsstufe wird der Eintrag zu einem Modul.",
+    "cascadeHint": "Jahrgangsstufe, Ausbildungsrichtung und Bildungsbereich werden an die Lernbereiche darunter weitergegeben.",
+    "fieldConcepts": "Konzepte",
+    "conceptRemove": "{{concept}} entfernen",
+    "conceptNew": "„{{concept}}“ ist noch nicht im Katalog und wird neu angelegt.",
+    "conceptsPlaceholder": "Konzept suchen oder neues eingeben …",
+    "conceptsHint": "Tippen, um vorhandene Konzepte zu finden; ↑/↓ und Enter zum Auswählen. Diese Konzepte gehen als Zielkonzepte in den Generierungsprompt ein.",
+    "conceptsAuto": "Automatisch aus der Lehrplan-Zuordnung dieses Lernbereichs übernommen.",
+    "conceptsAdminHint": "Änderbar über „Lernbereich bearbeiten“ in der Übersicht.",
+    "conceptsEmpty": "Ohne Konzepte wird bei der Generierung „general-programming“ verwendet.",
+    "generateDisabledNoExamples": "Für dieses Thema ist noch kein Referenz-Codebeispiel hinterlegt — ohne Beispiel kann keine Aufgabe generiert werden.",
+    "generateDisabledNoExamplesAdmin": "Für dieses Thema ist noch kein Referenz-Codebeispiel hinterlegt — lege oben eines an, um die Generierung freizuschalten."
   },
 
   "common": {
+    "crashTitle": "Etwas ist schiefgelaufen",
+    "crashBody": "Diese Seite konnte nicht angezeigt werden. Du kannst es erneut versuchen oder zur Startseite zurückkehren.",
+    "crashDetails": "Technische Details",
+    "crashRetry": "Erneut versuchen",
     "loading": "Laden...",
     "error": "Fehler",
     "save": "Speichern",
@@ -715,7 +1193,7 @@
     "edit": "Bearbeiten",
     "back": "Zurück",
     "home": "Home",
-    "close": "Schliessen",
+    "close": "Schließen",
     "confirm": "Bestätigen",
     "yes": "Ja",
     "no": "Nein",
@@ -749,6 +1227,42 @@
     "restoreHint": "Wiederherstellung: docker exec -i <container> pg_restore -U postgres -d codeowl < backup.dump"
   },
 
+  "adminResearch": {
+    "title": "Forschungsdaten",
+    "subtitle": "Die zu Forschungszwecken erfassten Daten ansehen und herunterladen, gefiltert nach Klasse, Typ und Zeitraum",
+    "loadError": "Die Daten konnten nicht geladen werden.",
+    "downloadError": "Der Download ist fehlgeschlagen.",
+    "dataset": {
+      "events": "Lernereignisse",
+      "feedback": "Feedback-Klicks",
+      "hints": "Hinweise",
+      "submissions": "Abgaben"
+    },
+    "filterClass": "Klasse",
+    "allClasses": "Alle Klassen",
+    "trackingOffTag": "(Tracking aus)",
+    "filterType": "Ereignistyp",
+    "allTypes": "Alle Typen",
+    "filterFrom": "Von",
+    "filterTo": "Bis",
+    "refresh": "Neu laden",
+    "clearFilters": "Zurücksetzen",
+    "statRows": "Zeilen",
+    "statStudents": "identifizierte Schüler",
+    "statAnonymous": "anonymisiert",
+    "downloadCsv": "CSV",
+    "downloadZip": "ZIP",
+    "downloadZipHint": "Alle vier Datensätze der aktuellen Klasse als ZIP",
+    "empty": "Für diesen Filter wurden keine Daten erfasst.",
+    "prevPage": "Vorherige Seite",
+    "nextPage": "Nächste Seite",
+    "pageOf": "Seite {{page}} von {{total}}",
+    "anonymous": "anonym",
+    "noClass": "keine Klasse",
+    "expandHint": "Zum Auf- und Zuklappen klicken",
+    "privacyNote": "IDs sind Pseudonyme; Namen und E-Mail-Adressen verlassen diese Seite nicht. Ereignisse aus Klassen ohne Tracking werden ohne Schüler-ID gespeichert, behalten aber ihre Klasse."
+  },
+
   "changePassword": {
     "title": "Neues Passwort wählen",
     "subtitle": "Dein Lehrer hat ein temporäres Passwort für dich gesetzt. Bitte wähle jetzt ein eigenes Passwort.",
@@ -759,5 +1273,834 @@
     "mismatch": "Die Passwörter stimmen nicht überein.",
     "tooShort": "Das Passwort muss mindestens 8 Zeichen lang sein.",
     "error": "Fehler beim Ändern des Passworts."
+  },
+
+  "help": {
+    "common": {
+      "pageTitle": "Hilfe",
+      "back": "Zurück",
+      "learnMore": "Mehr erfahren",
+      "fullOverview": "Zur vollständigen Hilfe-Übersicht",
+      "notFound": "Für diesen Bereich ist keine Hilfe verfügbar.",
+      "adminOnly": "Diese Seite ist nur für Admins zugänglich.",
+      "beta": "Beta"
+    },
+    "overview": {
+      "title": "CodeOwl Hilfe-Center",
+      "lead": "Alles Wichtige zu CodeOwl v2 — gestufte Parsons-Aufgaben generieren, prüfen und lösen im Unterrichtskontext.",
+      "catGettingStarted": "Erste Schritte",
+      "catClassroom": "Klassenverwaltung",
+      "catContent": "Inhalte finden und wiederverwenden",
+      "catSequences": "Sequenzen und Aufgaben",
+      "catAdvanced": "Erweiterte Funktionen",
+      "catAdmin": "Admin-Werkzeuge",
+      "authTitle": "Konten und Authentifizierung",
+      "authBody": "CodeOwl v2 hat vollwertige Benutzerkonten mit drei Rollen: <strong>Lehrkraft</strong>, <strong>Schüler</strong> und <strong>Admin</strong>. Lehrkräfte registrieren sich selbst; Schüler werden von ihrer Lehrkraft über einen einmaligen Token-Link angelegt (am ersten Tag ist keine Email nötig).",
+      "authItems": [
+        "<strong>Anmelden</strong> — Email und Passwort, oder Token-Link (für Schüler).",
+        "<strong>Registrieren</strong> — nur für Lehrkräfte. Schüler werden von der Lehrkraft angelegt.",
+        "<strong>Passwort vergessen</strong> — Zurücksetzen per Email.",
+        "<strong>Onboarding</strong> — Schüler setzen ihr Passwort nach der ersten Anmeldung selbst.",
+        "<strong>Profil</strong> — Email oder Passwort jederzeit ändern."
+      ],
+      "homeTitle": "Startseite — Sequenzen generieren",
+      "homeBody": "Der Ausgangspunkt für neue gestufte Parsons-Aufgabensätze. Gib Code, eine Aufgabenstellung und/oder Konzepte an. CodeOwl erzeugt automatisch drei (oder fünf) Aufgabenstufen.",
+      "homeItems": [
+        "<strong>Sequenz generieren</strong> — erstellt einen neuen Aufgabensatz mit 3 (oder 5) Stufen.",
+        "<strong>Einschränkungen</strong> — Konstrukte per Blacklist/Whitelist steuern, Schwierigkeitsanstieg festlegen.",
+        "<strong>Sprache der Aufgabenstellung</strong> — erzwingt deutsche oder englische Aufgabentexte.",
+        "<strong>Demo / Zurücksetzen</strong> — Beispiel laden oder Formular leeren.",
+        "<strong>Tastenkürzel</strong> — <kbd>Strg</kbd>+<kbd>Enter</kbd> zum Generieren."
+      ],
+      "manualTitle": "Manueller Aufgaben-Editor",
+      "manualBody": "Ohne LLM — du schreibst Aufgabenstellung und Lösungscode selbst. Ideal, wenn du die genaue Formulierung und den Code vollständig kontrollieren willst, oder wenn du bereits Unterrichtsbeispiele hast, die du in Parsons-Puzzles verwandeln möchtest.",
+      "manualItems": [
+        "<strong>Stufen-Editor</strong> — bis zu 3 Stufen (T1–T3); jede Stufe bekommt eigene Aufgabenstellung und eigenen Code.",
+        "<strong>Live-Blockvorschau</strong> — du siehst beim Tippen, wie der Code in ziehbare Blöcke zerlegt wird.",
+        "<strong>Tab-Taste</strong> — fügt im Code-Editor 4 Leerzeichen ein (ohne Fokus-Falle)."
+      ],
+      "classesTitle": "Klassen",
+      "classesBody": "Lehrkräfte legen Klassen an, verwalten darin die Schülerkonten und weisen Arbeitsblätter zu. Schüler werden über einen generierten Token-Link aufgenommen — bei der Anmeldung ist keine Email nötig.",
+      "classesItems": [
+        "<strong>Klasse erstellen</strong> — Klasse benennen und Schüler hinzufügen.",
+        "<strong>Schüler-Token</strong> — einmalige Anmeldelinks für jeden Schüler.",
+        "<strong>Arbeitsblätter zuweisen</strong> — Arbeitsblätter an eine Klasse hängen, damit Schüler darauf zugreifen können.",
+        "<strong>Fortschritt-Tracking</strong> — pro Klasse aktivierbar, protokolliert detaillierte Lernereignisse für die Forschung."
+      ],
+      "myClassesTitle": "Meine Klassen (Schüler)",
+      "myClassesBody": "Hier sehen Schüler ihre Klassen und die zugewiesenen Arbeitsblätter. Jede Klassenkarte verlinkt auf die Arbeitsblätter, die die Lehrkraft zugewiesen hat — klicke ein Arbeitsblatt an, um mit den Aufgaben zu beginnen.",
+      "myClassesItems": [
+        "Klicke auf eine Klassenkarte, um ihre Arbeitsblätter zu sehen.",
+        "Klicke auf ein Arbeitsblatt, um es zu öffnen und alle Aufgaben zu sehen.",
+        "Wenn deine Klassenliste leer ist, bitte deine Lehrkraft, dich aufzunehmen."
+      ],
+      "worksheetsTitle": "Arbeitsblätter",
+      "worksheetsBody": "Arbeitsblätter fassen Sequenzen zu einer sinnvollen Einheit zusammen (z.B. \"Woche 3 — Arrays\"). Lehrkräfte weisen Arbeitsblätter Klassen zu, konfigurieren die Hinweis-Einstellungen und exportieren sie als PDF.",
+      "worksheetsItems": [
+        "<strong>Sequenzen verwalten</strong> — Sequenzen zu einem Arbeitsblatt hinzufügen oder entfernen.",
+        "<strong>Hinweis-Konfiguration</strong> — Hinweise aktivieren/deaktivieren, Credits pro Aufgabe festlegen.",
+        "<strong>Klasse zuweisen</strong> — macht das Arbeitsblatt für Schüler sichtbar.",
+        "<strong>Export</strong> — PDF (Puzzle oder Freiform) sowie CSV-/JSON-Export."
+      ],
+      "libraryTitle": "Bibliothek",
+      "libraryBody": "Durchsuche und verwende alle für dich verfügbaren Sequenzen. Filtere nach Programmiersprache, Konzept-Tags, Stufenanzahl oder per Volltextsuche. Kopiere jede Sequenz mit einem Klick in dein eigenes Arbeitsblatt.",
+      "libraryItems": [
+        "<strong>Volltextsuche</strong> — durchsucht Aufgabenstellungen und Code gleichzeitig.",
+        "<strong>Tags</strong> — strukturelle Tags (z.B. <code>for-loop</code>) und semantische Tags (z.B. <code>fibonacci</code>).",
+        "<strong>Ein-Klick-Kopie</strong> — kopiert eine Sequenz direkt in eines deiner Arbeitsblätter.",
+        "<strong>Filter in der URL</strong> — Filterlinks lassen sich teilen."
+      ],
+      "curriculumTitle": "Lehrplan",
+      "curriculumBody": "Durchstöbere den Themenbaum des bayerischen LehrplanPLUS (G9 Informatik) und generiere Sequenzen direkt aus einem Lehrplanthema. CodeOwl füllt Konzepte automatisch aus und fügt kuratierten Referenzcode für die gewählte Jahrgangsstufe ein.",
+      "curriculumItems": [
+        "<strong>Themenbaum</strong> — Jgst. 7, 9, 10, 11, 12/13 mit Lernbereichen.",
+        "<strong>Auto-Kontext</strong> — Konzepte und Codebeispiele werden aus dem Thema vorbelegt.",
+        "<strong>Jahrgangs-Kalibrierung</strong> — der Prompt passt die Schwierigkeit an die gewählte Stufe an."
+      ],
+      "marketplaceTitle": "Marktplatz",
+      "marketplaceBody": "Durchstöbere ganze Arbeitsblätter, die andere Lehrkräfte veröffentlicht haben — nicht nur einzelne Sequenzen. Kopiere jedes veröffentlichte Arbeitsblatt mit einem Klick in deinen eigenen Bereich.",
+      "marketplaceItems": [
+        "<strong>Suche &amp; Sortierung</strong> — nach Name/Beschreibung, Aktualität, Relevanz oder Beliebtheit.",
+        "<strong>Arbeitsblatt kopieren</strong> — kopiert das gesamte Arbeitsblatt inklusive aller Sequenzen und Aufgaben.",
+        "<strong>Veröffentlichen</strong> — setze die Sichtbarkeit eines Arbeitsblatts auf \"Im Marktplatz\", um es hier zu listen."
+      ],
+      "sequenceTitle": "Sequenz-Seite",
+      "sequenceBody": "Übersicht aller Aufgaben (T1–T3 bzw. T1–T5) innerhalb einer generierten Sequenz. Lehrkräfte sehen Musterlösungen, können Aufgaben bearbeiten und die Sequenz exportieren.",
+      "sequenceItems": [
+        "<strong>Aufgabe lösen / Aufgabe prüfen</strong> — Schüler- oder Lehrer-Ansicht des Solvers.",
+        "<strong>Aufgabe bearbeiten</strong> — Aufgabenstellung und Code anpassen (nur Lehrkraft).",
+        "<strong>Sequenz teilen</strong> — kopiert einen schülerfreundlichen Link in die Zwischenablage.",
+        "<strong>Export</strong> — Download als PDF oder JSON/CSV."
+      ],
+      "solveTitle": "Löse-Seite",
+      "solveBody": "Der interaktive Parsons-Solver. Ordne die gemischten Code-Blöcke per Drag-and-drop, Klick oder Tastatur an und fordere dann Feedback an.",
+      "solveItems": [
+        "<strong>Überprüfe meine Lösung</strong> — grün / gelb / rot pro Block.",
+        "<strong>Klick-zum-Verschieben</strong> — Alternative zu Drag-and-drop (ideal für Trackpads).",
+        "<strong>Distraktoren</strong> — plausible, aber falsche Blöcke, die erkannt und ausgeschlossen werden müssen.",
+        "<strong>Hinweise</strong> — durch statische Analyse gestützte Hinweise, die problematische Blöcke hervorheben.",
+        "<strong>Abschluss-Banner</strong> — \"Richtig gelöst!\" mit Statistik, wenn die Lösung stimmt."
+      ],
+      "hintsTitle": "Hinweis-System",
+      "hintsBody": "Wenn ein Schüler nicht weiterkommt, führt das Hinweis-System eine statische Analyse der aktuellen Blockanordnung durch und hebt die problematischen Blöcke hervor — kein Raten, keine Halluzination. Eine zweite Stufe ruft optional das LLM für eine schülergerechte Erklärung auf.",
+      "hintsItems": [
+        "<strong>Stufe 1</strong> — deterministisch: Ruff (Python) bzw. javac/SpotBugs (Java) identifiziert den Fehler.",
+        "<strong>Stufe 2</strong> — \"Erklär es mir\": das LLM erklärt den Befund in verständlicher Sprache.",
+        "<strong>Credits</strong> — pro Arbeitsblatt konfigurierbar (Standard: 5 pro Aufgabe)."
+      ],
+      "distractorsTitle": "Distraktoren",
+      "distractorsBody": "Distraktor-Blöcke sind plausibel wirkende, aber falsche Codezeilen, die unter die Puzzle-Blöcke gemischt werden. Schüler müssen sie erkennen und ausschließen. Taxonomie-basiert (6 Typen), erzeugt durch einen separaten \"Antagonist\"-Aufruf.",
+      "distractorsItems": [
+        "<strong>Typen</strong> — Logic Flip, Off-by-One, Variable Mismatch, Boundary Identity, Structural Illogical, Redundant Zombie.",
+        "<strong>Lehrer-Steuerung</strong> — Distraktoren pro Aufgabe bearbeiten, neu erzeugen oder abschalten.",
+        "<strong>Hinweis-Integration</strong> — Hinweise erkennen Distraktor-Blöcke zuerst, bevor die vollständige Analyse läuft."
+      ],
+      "teacherTitle": "Lehrer-Modus",
+      "teacherBody": "Lehrkräfte und Admins haben automatisch Zugang zum Lehrer-Modus — Musterlösungen, Prüfwerkzeuge, Bearbeitungsfunktionen und Exportoptionen.",
+      "teacherItems": [
+        "Schalte die \"Lehrer-Ansicht\" um, um Musterlösungen ein- oder auszublenden.",
+        "Aufgaben bearbeiten, Distraktoren verwalten, Hinweise pro Arbeitsblatt konfigurieren.",
+        "Schüler sehen Lehrer-Bedienelemente nie, unabhängig von der URL."
+      ],
+      "adminTitle": "Admin-Bereich",
+      "adminBody": "Werkzeuge nur für Admins zur Verwaltung der Plattform: Benutzerkonten, Tag-Pflege und Sammeloperationen auf den Bibliotheksinhalten.",
+      "adminItems": [
+        "<strong>Benutzerverwaltung</strong> — Konten ansehen, Rollen ändern und Konten löschen.",
+        "<strong>Bibliotheks-Admin</strong> — doppelte Tags zusammenführen, Sequenzen nach Modell-Updates neu taggen."
+      ]
+    },
+    "auth": {
+      "title": "Konten und Authentifizierung",
+      "intro": "CodeOwl v2 hat vollwertige Benutzerkonten mit drei Rollen. Alle Lerndaten (Ereignisse, Feedback-Logs) werden, wo vorhanden, mit einer Benutzer-ID verknüpft. Anonyme Besucher können weiterhin geteilte Links öffnen und Aufgaben lösen, aber nichts generieren oder erstellen — die Startseite ist die Anmeldeseite.",
+      "rolesTitle": "Rollen",
+      "roles": [
+        "<strong>Lehrkraft</strong> — kann Sequenzen generieren (die Startseite steht nur Lehrkräften und Admins offen), Klassen verwalten sowie Arbeitsblätter erstellen und bearbeiten.",
+        "<strong>Schüler</strong> — kann Aufgaben in zugewiesenen Arbeitsblättern lösen, aber nicht generieren.",
+        "<strong>Admin</strong> — alle Rechte einer Lehrkraft plus Benutzerverwaltung und Admin-Werkzeuge."
+      ],
+      "registrationTitle": "Registrierung und Anmeldung",
+      "registration": [
+        "<strong>Registrieren</strong> — Lehrkräfte registrieren sich selbst mit Name, Email und Passwort. Die Bestätigungsmail wird automatisch verschickt.",
+        "<strong>Anmelden</strong> — Email und Passwort (Lehrkräfte/Admins) oder ein einmaliger Token-Link (Schüler).",
+        "<strong>Token-Anmeldung</strong> — Schüler fügen den von der Lehrkraft erzeugten Link ein oder klicken ihn an. Zum Start ist keine Email nötig.",
+        "<strong>FIM-/Hochschul-Anmeldung</strong> — an Einrichtungen mit passendem LDAP-Verzeichnis meldet sich eine Lehrkraft über \"Mit FIM-Account anmelden\" mit ihren bestehenden Hochschul-Zugangsdaten an; so angelegte Schüler tun dies ebenso, statt einen Token-Link zu nutzen."
+      ],
+      "onboardingTitle": "Schüler-Onboarding (\"Anton-Prinzip\")",
+      "onboarding": "Schüler registrieren sich <em>nicht</em> selbst. Die Lehrkraft legt die Schülerkonten innerhalb einer Klasse an. CodeOwl erzeugt pro Schüler einen persönlichen Token-Link — teile diesen Link (ausgedruckt, per Chat usw.). Der Schüler klickt darauf, ist sofort angemeldet und kann während des Onboardings optional Email und Passwort setzen. Das hält die Hürde am ersten Tag so niedrig wie möglich.",
+      "passwordTitle": "Passwortverwaltung",
+      "password": [
+        "<strong>Passwort vergessen</strong> — gib deine Email ein, um einen Link zum Zurücksetzen zu erhalten.",
+        "<strong>Passwort zurücksetzen</strong> — folge dem Link in der Email, um ein neues Passwort zu setzen.",
+        "<strong>Profil</strong> — Email-Adresse oder Passwort jederzeit über die Profilseite ändern."
+      ],
+      "securityTitle": "Sicherheitshinweise",
+      "security": [
+        "Passwörter werden mit Argon2 gehasht — sie werden nie im Klartext gespeichert.",
+        "JWTs laufen ab und werden im Hintergrund automatisch erneuert.",
+        "Schüler-Token-Links sind einmalig gültig; nach dem Einlösen können sie nicht wiederverwendet werden."
+      ]
+    },
+    "home": {
+      "title": "Hilfe zur Startseite",
+      "intro": "Die Startseite ist dein Arbeitsbereich, um neue gestufte Programmieraufgaben zu generieren. CodeOwl nimmt verschiedene Eingaben entgegen und erstellt drei Aufgaben (T1–T3) — oder fünf Aufgaben (T1–T5) im erweiterten Modus.",
+      "inputsTitle": "Unterstützte Eingaben",
+      "inputs": [
+        "<strong>Code-Snippet</strong> — füge ein gültiges Snippet ein; das Modell erzeugt daraus Aufgabenstellungen und Varianten.",
+        "<strong>Aufgabenstellung</strong> — beschreibe das Problem in normaler Sprache.",
+        "<strong>Konzepte</strong> — nenne Programmierkonzepte wie Schleifen, Arrays oder Rekursion.",
+        "<strong>Wichtig!</strong> — Entweder muss ein Code-Snippet vorhanden sein <em>oder</em> die Programmiersprache muss explizit angegeben werden. Der Kontext lässt sich aus allem ableiten — nur aus der Sprache allein nicht."
+      ],
+      "optionsTitle": "Generierungs-Optionen",
+      "options": [
+        "<strong>Sprache der Aufgabenstellung</strong> — erzwingt deutsche oder englische Aufgabentexte und Code-Kommentare. Behebt das Problem aus v1, bei dem die Generierung stillschweigend die Sprache wechselte.",
+        "<strong>Anzahl Stufen</strong> — 3 Stufen (Standard) oder 5 Stufen. Stufe 4 ergänzt distraktorlastige Puzzles, Stufe 5 eine Komponente \"Erkläre deine Lösung\".",
+        "<strong>Distraktoren</strong> — LLM-generierte Distraktor-Blöcke aktivieren oder deaktivieren. Ist die Option aktiv, erzeugt ein separater \"Antagonist\"-Aufruf pro Aufgabe plausible, aber falsche Zeilen."
+      ],
+      "contextModeLabel": "Kontext-Modus",
+      "contextModeBody": "umgibt das Puzzle mit schreibgeschütztem Gerüstcode. Die generierte Aufgabe erhält einen <em>contextBefore</em>- und einen <em>contextAfter</em>-Block (z.B. einen Klassenkopf darüber und eine aufrufende Funktion darunter). Schüler sehen das Gesamtbild, ordnen aber nur die Puzzle-Blöcke in der Mitte. Nützlich für längere, realistische Code-Aufgaben.",
+      "inlineSplitLabel": "Blöcke mit inneren Abschnitten",
+      "inlineSplitBody": "teilt manche Zeilen zusätzlich in Abschnitte auf, die der Schüler innerhalb des Blocks selbst anordnen muss, nicht nur den Block als Ganzes platzieren — nützlich für Zeilen mit mehreren unabhängigen Teilausdrücken.",
+      "advancedTitle": "Erweiterte Optionen (Einschränkungen)",
+      "advanced": [
+        "<strong>Blacklist</strong> — kommagetrennte Konstrukte, die ausgeschlossen werden, z.B. <code>ternary, lambda, list comprehension</code>. Verhindert, dass das LLM Konzepte verwendet, die die Schüler noch nicht kennen.",
+        "<strong>Whitelist</strong> — nur die aufgeführten Konstrukte verwenden. Nützlich für stark kontrollierte Übungen.",
+        "<strong>Schwierigkeitsanstieg</strong> — steuert, wie steil der Komplexitätssprung zwischen den Stufen ausfällt (sanft → steil).",
+        "<strong>Lehrer-Anweisungen</strong> — Freitext, der direkt in den Prompt eingefügt wird, z.B. \"Nur deutsche Variablennamen verwenden\" oder \"Geeignet für Jgst. 9\"."
+      ],
+      "controlsTitle": "Bedienelemente",
+      "controls": [
+        "<strong>Sequenz generieren</strong> — schickt die Eingaben an das Modell und leitet zur Sequenz-Seite weiter.",
+        "<strong>Arbeitsblatt erstellen</strong> — öffnet einen kleinen Dialog, um direkt von der Startseite aus ein leeres Arbeitsblatt anzulegen, ohne vorher eine Sequenz zu generieren.",
+        "<strong>Demo</strong> — lädt sofort eine Beispielsequenz zum Ausprobieren.",
+        "<strong>Zurücksetzen</strong> — leert alle Eingabefelder.",
+        "<kbd>Strg</kbd>+<kbd>Enter</kbd> — Tastenkürzel zum Generieren."
+      ],
+      "tipsTitle": "Tipps für Lehrkräfte",
+      "tips": [
+        "Sehr kurze Snippets können zu falscher Spracherkennung führen — gib die Sprache lieber explizit an.",
+        "Formuliere klar und kurz. Vermeide es, Variablennamen oder Funktionsbezeichner vorzugeben.",
+        "Englische Eingaben liefern etwas bessere Qualität als deutsche, aber mit gesetzter <em>Sprache der Aufgabenstellung: Deutsch</em> funktioniert Deutsch zuverlässig.",
+        "Wenn die generierten Aufgaben Konstrukte verwenden, die die Schüler noch nicht kennen, trage sie in die Blacklist ein und generiere neu."
+      ]
+    },
+    "classes": {
+      "title": "Hilfe zu Klassen",
+      "intro": "Klassen fassen Schüler zusammen und verbinden sie mit Arbeitsblättern. Jedes Schülerkonto gehört zu mindestens einer Klasse.",
+      "overviewTitle": "Klassenübersicht",
+      "overview": [
+        "Die Klassenseite listet alle deine Klassen mit Schülerzahl und zugewiesenen Arbeitsblättern auf.",
+        "Klicke eine Klasse an, um die Detailansicht zu öffnen: Schülerliste und Arbeitsblattliste."
+      ],
+      "createTitle": "Schüler anlegen (\"Anton-Prinzip\")",
+      "createBody": "Klicke innerhalb einer Klasse auf <strong>\"Schüler hinzufügen\"</strong> und gib einen Anzeigenamen ein (Vorname, z.B. \"Anton\"). CodeOwl legt das Konto an und zeigt einen einmaligen Anmelde-Token-Link. Teile diesen Link mit dem Schüler (Ausdruck, Chat, QR-Code). Der Schüler klickt darauf, ist sofort angemeldet und kann mit den Aufgaben beginnen. Eine Email-Adresse ist nicht nötig.",
+      "create": [
+        "Token-Links können bei Verlust neu erzeugt werden.",
+        "Schüler können später über ihre Profilseite eine Email hinterlegen und ein Passwort setzen.",
+        "Schüler können jederzeit aus einer Klasse entfernt werden (das löscht das Konto <em>nicht</em>).",
+        "<strong>\"CSV importieren\"</strong> — eine ganze Klassenliste auf einmal anlegen: Vorlage herunterladen, ausfüllen, Zeilen in der Vorschau prüfen und alle Konten in einem Schritt erzeugen.",
+        "<strong>\"FIM-Accounts hinzufügen\"</strong> — Schüler über ihren FIM-Benutzernamen hinzufügen, sofern das LDAP-Verzeichnis deiner Hochschule angebunden ist; sie melden sich dann über \"Mit FIM-Account anmelden\" statt über einen Token-Link an.",
+        "<strong>\"Einladungslinks herunterladen (CSV)\"</strong> — die Token-Links aller Schüler als CSV; <strong>\"Nicht Registrierte herunterladen (CSV)\"</strong> grenzt das auf die ein, die sich noch nicht angemeldet haben.",
+        "<strong>\"Temporäres Passwort setzen\"</strong> — erzeugt ein neues, einmalig angezeigtes temporäres Passwort für Schüler, die ihren Token-Link verloren haben und ihn nicht selbst wiederherstellen können."
+      ],
+      "assignTitle": "Arbeitsblätter zuweisen",
+      "assign": [
+        "Klicke in der Klassen-Detailansicht auf <strong>\"Arbeitsblatt zuweisen\"</strong> und wähle aus deinen Arbeitsblättern aus.",
+        "Zugewiesene Arbeitsblätter werden für alle Schüler der Klasse zugänglich.",
+        "Arbeitsblätter lassen sich auch direkt von der Arbeitsblatt-Seite aus zuweisen."
+      ],
+      "trackingTitle": "Fortschritt-Tracking",
+      "trackingBody": "Jede Klasse hat einen Schalter für <strong>Fortschritt-Tracking</strong> (⚙-Symbol in der Klassen-Detailansicht). Ist er aktiv, werden für jede Schülerinteraktion in dieser Klasse detaillierte Lernereignisse aufgezeichnet — Blockbewegungen, Feedback-Klicks, Hinweisnutzung, Bearbeitungszeiten.",
+      "tracking": [
+        "<strong>Aktiviert</strong> — der vollständige Ereignisstrom wird protokolliert; geeignet für Forschung oder detaillierte Fortschrittsanalysen.",
+        "<strong>Deaktiviert</strong> — es werden nur aggregierte Daten gespeichert (richtig/falsch pro Aufgabe). Standard für neue Klassen.",
+        "Der Tracking-Status lässt sich jederzeit umschalten; er wirkt nur auf künftige Ereignisse."
+      ],
+      "progressTitle": "Schülerfortschritt",
+      "progress": [
+        "Ist Tracking aktiviert, zeigt die Klassen-Detailseite eine Tabelle pro Schüler — Anzahl gelöster Aufgaben sowie Versuche insgesamt/richtig.",
+        "Klicke einen Schüler an, um den detaillierten Fortschritt zu öffnen: jede Aufgabe in jedem zugewiesenen Arbeitsblatt, mit Versuchszahl und Status (Gelöst / Bearbeitet / Nicht begonnen).",
+        "Der Button <strong>\"Ansehen\"</strong> (Spalte \"Letzter Stand\") bei einer Aufgabe zeigt genau das, was der Schüler zuletzt im Lösungsbereich angeordnet hatte — das funktioniert selbst dann, wenn nie auf Feedback geklickt wurde, weil es aus dem automatischen Speichern stammt, nicht nur aus bewerteten Versuchen."
+      ],
+      "permissionsTitle": "Berechtigungen",
+      "permissions": [
+        "Nur die Besitzerin oder der Besitzer der Klasse (oder ein Admin) kann Schüler hinzufügen/entfernen oder die Klasse bearbeiten.",
+        "Andere Lehrkräfte sehen eine Klasse, wenn sie ein Arbeitsblatt mit ihr teilen, können sie aber nicht bearbeiten."
+      ]
+    },
+    "worksheets": {
+      "title": "Hilfe zu Arbeitsblättern",
+      "intro": "Ein Arbeitsblatt ist eine benannte Sammlung von Sequenzen (z.B. \"Woche 3 — Arrays und Schleifen\"). Arbeitsblätter sind die Einheit, die Klassen zugewiesen wird.",
+      "overviewTitle": "Arbeitsblatt-Übersicht",
+      "overview": [
+        "Erstelle ein Arbeitsblatt auf der Arbeitsblatt-Seite oder direkt aus einer generierten Sequenz.",
+        "Füge Sequenzen über die Sequenz-Seite, die Bibliothek (Ein-Klick-Kopie) oder direkt auf der Arbeitsblatt-Seite hinzu — Suche-und-auswählen, eine einzelne Sequenz-ID einfügen, oder mehrere auf einmal.",
+        "Sequenzen behalten innerhalb eines Arbeitsblatts ihre Stufenstruktur T1–T3 und lassen sich per Drag-and-drop neu anordnen.",
+        "Ein Regler \"Detailgrad\" (Keine / Einige / Alle) steuert, wie viele Informationen pro Sequenz die Liste zeigt — sie werden erst bei Bedarf nachgeladen."
+      ],
+      "visibilityTitle": "Sichtbarkeit",
+      "visibility": [
+        "<strong>Nur ich</strong> — niemand sonst kann das Arbeitsblatt öffnen, auch nicht über einen Link.",
+        "<strong>Über Link</strong> — wer den Link hat, kann es öffnen; es taucht in keiner Suche auf. So verhielten sich Arbeitsblätter bisher.",
+        "<strong>Im Marktplatz</strong> — andere Lehrkräfte finden es über die Suche (siehe die Hilfeseite <em>Marktplatz</em>) und können es in ihren eigenen Bereich kopieren.",
+        "Dein Standard-\"Posteingang\"-Arbeitsblatt lässt sich nie veröffentlichen — die Option ist dafür ausgeblendet."
+      ],
+      "scheduleTitle": "Terminierung (Freigabe, Abgabetermin und Kulanzzeit)",
+      "scheduleBody": "Die Zuweisung eines Arbeitsblatts an eine Klasse kann einen eigenen Zeitplan haben, bearbeitbar auf der Klassen-Detailseite:",
+      "schedule": [
+        "<strong>Freigegeben ab</strong> — ab wann Schüler beginnen können; leer bedeutet sofort verfügbar.",
+        "<strong>Abgabetermin</strong> — danach sehen Schüler ein Banner \"geschlossen\" und können ihre Arbeit ansehen, aber nicht mehr bearbeiten. Leer bedeutet zeitlich unbegrenzt geöffnet.",
+        "<strong>Kulanzzeit</strong> — zusätzliche Stunden/Minuten nach dem Abgabetermin, bevor tatsächlich geschlossen wird; leer oder 0 bedeutet ein scharfer Stichtag.",
+        "<strong>Jetzt veröffentlichen / Zurückziehen / Jetzt beenden</strong> — Schnellaktionen, die den Zeitplan sofort außer Kraft setzen, neben einem Status-Abzeichen (Noch nicht freigegeben / Geöffnet / Abgabetermin abgelaufen)."
+      ],
+      "hintsTitle": "Hinweis-Konfiguration (nur Lehrkraft)",
+      "hintsBody": "Lege pro Arbeitsblatt fest, ob Hinweise für Schüler verfügbar sind und ob ihre Nutzung begrenzt wird:",
+      "hints": [
+        "<strong>Hinweise aktivieren</strong> — Checkbox an/aus. Ist sie aus, erscheint der Hinweis-Button gar nicht.",
+        "<strong>Unbegrenzte Hinweise</strong> — Standard. Schalte den Regler aus, um ein Budget zu setzen: <strong>Credits pro Aufgabe</strong> (1–99). Stufe 1 kostet 1 Credit, Stufe 2 kostet 2. Das Budget gilt pro Schüler und pro Aufgabe und wird beim Zurücksetzen der Aufgabe <em>nicht</em> aufgefüllt."
+      ],
+      "exportTitle": "Export",
+      "export": [
+        "<strong>Puzzle-PDF</strong> — druckbare Karten zum Ausschneiden und Anordnen mit gestrichelten Rändern (für Papier-Einheiten).",
+        "<strong>Freiform-PDF</strong> — Aufgabenstellung und Code in einem grauen Monospace-Kasten (für schriftliche Prüfungen).",
+        "<strong>JSON / CSV</strong> — Rohdaten der Aufgaben für eigene Auswertungen (SPSS, R, Excel)."
+      ],
+      "copyTitle": "Fremde Arbeitsblätter kopieren",
+      "copy": [
+        "Du kannst jedes mit dir geteilte Arbeitsblatt ansehen; klicke auf <strong>\"Kopieren\"</strong>, um eine eigene bearbeitbare Version zu erhalten.",
+        "Die tiefe Kopie dupliziert alle Sequenzen und Aufgaben mit neuen IDs — du bist alleiniger Besitzer.",
+        "Änderungen an der Kopie wirken sich nie auf das Original aus."
+      ]
+    },
+    "library": {
+      "title": "Hilfe zur Bibliothek",
+      "intro": "Die Bibliothek ist ein durchsuchbarer Bestand aller für dich verfügbaren Sequenzen — deiner eigenen und der von Kolleginnen und Kollegen geteilten. Finde, was du brauchst, sieh es dir an und kopiere es mit einem Klick in ein Arbeitsblatt.",
+      "searchTitle": "Suchen",
+      "search": [
+        "<strong>Volltextsuche</strong> — durchsucht Aufgabenstellungen und Code gleichzeitig. Die Volltextindizierung von Postgres sorgt für schnelle, relevante Treffer.",
+        "<strong>Hervorgehobene Textstellen</strong> — passende Stellen werden in der Trefferkarte markiert, sodass du sofort siehst, warum eine Sequenz gefunden wurde.",
+        "<strong>\"Meintest du eines dieser Tags?\"</strong> — trigrammbasierte Vorschläge bei Tippfehlern (<em>recursiv</em> → <em>recursive</em>)."
+      ],
+      "tagsTitle": "Tags und Filter",
+      "tagsBody": "Jede Sequenz hat zwei Tag-Ebenen:",
+      "tags": [
+        "<strong>Strukturelle Tags</strong> (grau) — automatisch aus dem Code erkannt: <code>for-loop</code>, <code>recursion</code>, <code>arrays</code>. Sie werden direkt nach der Generierung synchron ergänzt.",
+        "<strong>Semantische Tags</strong> (mit ✨) — vom LLM erzeugte Themenbezeichnungen: <code>fibonacci</code>, <code>binary-search</code>, <code>caesar-cipher</code>. Sie treffen einige Sekunden nach der Generierung ein.",
+        "<strong>Manuelle Tags</strong> (blau) — von der Lehrkraft ergänzt; sie werden vom Auto-Tagging nie überschrieben."
+      ],
+      "filtersBody": "Zu den Filtern gehören: Programmiersprache, Stufenanzahl (3 oder 5), Tags, Erstellungsdatum und Besitzer (\"Nur meine\" / \"Alle\").",
+      "filtersUrl": "Die Filter stehen in der URL, sodass sich Links teilen lassen.",
+      "conceptsTitle": "Konzepte",
+      "conceptsBody": "Neben Tags sind Sequenzen auch mit Einträgen aus dem kuratierten Konzeptkatalog verknüpft (demselben, den auch die Generierung und die Lehrplan-Zuordnung nutzen) — eine zweite Filterdimension in der Seitenleiste.",
+      "concepts": [
+        "Jede Sequenzkarte zeigt die Konzepte, die sie abdeckt, direkt neben ihren Tags — klicke eines an, um danach zu filtern, genau wie bei einem Tag.",
+        "Die Konzept-Wolke in der Seitenleiste funktioniert wie die Tag-Wolke: eine Anzahl pro Konzept, \"Mehr anzeigen\" und ein Beliebig/Alle-Modus, sobald du mehrere ausgewählt hast."
+      ],
+      "copyTitle": "Ein-Klick-Kopie",
+      "copy": [
+        "Klicke auf einer Sequenzkarte auf <strong>\"Kopieren\"</strong>, um sie direkt in deine Bibliothek-Inbox zu kopieren — ein Standard-Arbeitsblatt, das CodeOwl genau dafür bereithält, ganz ohne Auswahl.",
+        "Eine kurze Einblendung bestätigt die Kopie und bietet 5 Sekunden lang \"Rückgängig\" an.",
+        "Sequenzen, die bereits in einem deiner Arbeitsblätter liegen, zeigen ein grünes ✓."
+      ],
+      "addToWorksheetTitle": "In ein bestimmtes Arbeitsblatt einfügen",
+      "addToWorksheet": [
+        "Klicke statt \"Kopieren\" auf <strong>\"Zu Arbeitsblatt hinzufügen\"</strong>, wenn du das Ziel selbst wählen willst — es öffnet einen Dialog mit deinen Arbeitsblättern.",
+        "Anders als \"Kopieren\" rührt das deine Bibliothek-Inbox gar nicht an."
+      ],
+      "bulkTitle": "Mehrere auf einmal kopieren",
+      "bulk": [
+        "Klicke oberhalb der Trefferliste auf <strong>\"Auswählen\"</strong>, um auf jeder Karte ein Kontrollkästchen einzublenden.",
+        "Wähle beliebig viele Sequenzen aus, auch über mehrere Seiten hinweg — eine fixierte Leiste unten zeigt die Anzahl.",
+        "\"N in Arbeitsblatt kopieren\" schickt sie alle in einer Anfrage in ein Arbeitsblatt und zeigt, wie viele neu hinzugefügt und wie viele bereits vorhanden waren."
+      ],
+      "editTitle": "Tags bearbeiten (Lehrkraft)",
+      "edit": [
+        "Fahre bei einer eigenen Sequenz über ein Tag, um den Entfernen-Button (×) einzublenden.",
+        "Klicke auf das Stift-Symbol, um neue Tags hinzuzufügen. Eine Autovervollständigung schlägt bestehende Tags vor, um Dubletten zu vermeiden.",
+        "Manuelle Tags sind immer blau und werden vom Auto-Tagger nie überschrieben."
+      ],
+      "curriculumTitle": "Bibliothek und Lehrplan",
+      "curriculumBody": "Über „Sequenzen ansehen“ auf der Lehrplan-Seite gelangst du in die Bibliothek, bereits nach dem Lehrplanthema gefiltert — so siehst du sofort das gesamte relevante Material zu einem Thema, ob Jahrgangsstufe oder Modul."
+    },
+    "marketplace": {
+      "title": "Hilfe zum Marktplatz",
+      "intro": "Der Marktplatz ist der Ort, an dem ganze Arbeitsblätter für andere Lehrkräfte veröffentlicht werden — eine Stufe über der Bibliothek, die einzelne Sequenzen statt ganzer Arbeitsblätter teilt.",
+      "searchTitle": "Suchen",
+      "search": [
+        "<strong>Volltextsuche</strong> — durchsucht Namen und Beschreibungen von Arbeitsblättern.",
+        "<strong>Sortierung</strong> — Aktualität, Relevanz (sobald du etwas gesucht hast) oder Beliebtheit.",
+        "<strong>Sprachfilter</strong> — Treffer auf eine Programmiersprache eingrenzen.",
+        "<strong>\"Nur meine\"</strong> — nur die von dir selbst veröffentlichten Arbeitsblätter anzeigen, mit Anzahl."
+      ],
+      "copyTitle": "Ein Arbeitsblatt kopieren",
+      "copy": [
+        "Klicke auf <strong>\"Kopieren\"</strong> bei einer Karte (bei eigenen Arbeitsblättern nicht angezeigt), um das gesamte Arbeitsblatt — jede Sequenz und Aufgabe darin — in deine eigenen Arbeitsblätter zu kopieren.",
+        "Das unterscheidet sich von der Ein-Klick-Kopie der Bibliothek, die eine einzelne Sequenz statt eines ganzen Arbeitsblatts kopiert.",
+        "Du landest danach direkt bei deiner neuen Kopie."
+      ],
+      "publishingTitle": "Eigene Arbeitsblätter veröffentlichen",
+      "publishing": [
+        "Ein Arbeitsblatt erscheint hier erst, wenn seine <strong>Sichtbarkeit</strong> auf der Arbeitsblatt-Seite auf \"Im Marktplatz\" gesetzt ist — die beiden anderen Sichtbarkeitsstufen findest du auf der Hilfeseite <em>Arbeitsblätter</em>.",
+        "Dein Standard-\"Posteingang\"-Arbeitsblatt lässt sich nie veröffentlichen."
+      ]
+    },
+    "curriculum": {
+      "title": "Hilfe zum Lehrplan",
+      "intro": "Die Lehrplan-Seite bildet CodeOwl auf einen Themenbaum ab: bayerische Jahrgangsstufen (LehrplanPLUS G9 Informatik) und Hochschulmodule wie „Programmieren 1“. Navigiere nach Eintrag und Lernbereich und generiere dann eine Sequenz, deren Schwierigkeit und Konzepte automatisch auf dieses Thema kalibriert sind — ganz ohne manuelle Einrichtung.",
+      "betaNote": "<strong>Beta-Funktion.</strong> Aus dem Lehrplan generierte Sequenzen nutzen einen eigenen Prompt, der den Bildungsbereich des Themas berücksichtigt — Schule oder Hochschule. Die zugrunde liegenden Codebeispiele sind handkuratiert und bisher nur für einzelne Themen hinterlegt; ohne Beispiel ist die Generierung deaktiviert.",
+      "treeTitle": "Themenbaum",
+      "tree": [
+        "Die Themen sind nach Jahrgangsstufe (Jgst. 7, 9, 10, 11, 12/13) und Lernbereich gegliedert.",
+        "Das Abzeichen an jedem Thema zeigt, wie viele Sequenzen dazu bereits existieren.",
+        "<strong>Filter Schule / Hochschule</strong> — mischt der Themenbaum beides, grenzen Schaltflächen oben die Ansicht auf eines von beiden ein."
+      ],
+      "generateTitle": "Aus einem Thema generieren",
+      "generateBody": "Klicke neben einem Thema auf <strong>\"Aufgabe generieren\"</strong>. Der Generierungsdialog öffnet sich vorbelegt:",
+      "generate": [
+        "<strong>Konzepte</strong> — automatisch aus der Zuordnung des Lehrplanthemas gesetzt.",
+        "<strong>Codebeispiel</strong> — ein kuratiertes Referenz-Snippet zum Thema wird als Ausgangsmaterial eingefügt.",
+        "<strong>Sprache</strong> — standardmäßig Java (gemäß bayerischem Lehrplan); änderbar.",
+        "<strong>Jahrgangs-Kalibrierung</strong> — der System-Prompt passt intern die erwartete Schwierigkeit und das vorausgesetzte Vorwissen an."
+      ],
+      "generateAfter": "Du kannst jeden vorbelegten Wert vor dem Generieren ändern, und alle üblichen Generierungs-Optionen (Einschränkungen, Anzahl Stufen, Sprache der Aufgabenstellung) stehen zur Verfügung.",
+      "viewTitle": "Vorhandene Sequenzen ansehen",
+      "viewBody": "Klicke neben einem Thema auf <strong>\"Sequenzen ansehen\"</strong>, um in die bereits nach diesem Thema gefilterte Bibliothek zu springen. Enthalten sind sowohl aus dem Lehrplan generierte als auch manuell passend getaggte Sequenzen.",
+      "tipsTitle": "Tipps",
+      "tips": [
+        "Halte die Einschränkungen bei Themen der Jgst. 7 einfach — die Kalibrierung begrenzt die Komplexität bereits.",
+        "Füge statt des Standardbeispiels dein eigenes kuratiertes Snippet ein, wenn du ein bestimmtes Unterrichtsbeispiel verwenden willst.",
+        "Prüfe die Ausgabe nach dem Generieren im Lehrer-Modus, bevor du sie Schülern zuweist."
+      ],
+      "adminTitle": "Themenbaum verwalten (Admin)",
+      "admin": [
+        "<strong>Jahrgangsstufe / Modul</strong> — Einträge auf oberster Ebene anlegen oder bearbeiten: eine bayerische Jahrgangsstufe (mit Schulart) oder ein Hochschulmodul.",
+        "<strong>Lernbereich-Unterthemen</strong> — Unterthemen zu einem Eintrag anlegen oder bearbeiten, mit Name und Beschreibung auf Deutsch und Englisch sowie zugeordneten Konzepten.",
+        "<strong>Kuratierte Codebeispiele</strong> — die Referenz-Snippets anlegen, bearbeiten oder löschen, die ein Thema bei der Generierung anbietet. Ohne ein Beispiel ist die Generierung für dieses Thema deaktiviert."
+      ]
+    },
+    "sequence": {
+      "title": "Hilfe zur Sequenz-Seite",
+      "intro": "Die Sequenz-Seite zeigt alle Aufgaben innerhalb einer generierten Sequenz. Jede Aufgabe entspricht einer Stufe — Stufe 1 ist am leichtesten, Stufe 3 (oder 5) am komplexesten.",
+      "overviewTitle": "Übersicht",
+      "overview": [
+        "<strong>Sprache / Konzepte</strong> — erkannte Programmiersprache, Konzept-Tags, semantische Zusammenfassung.",
+        "<strong>Aufgabenbeschreibung</strong> — das übergreifende Thema aller Aufgaben der Sequenz.",
+        "<strong>Code-Snippet</strong> — ursprünglicher oder Referenzcode (falls bei der Generierung angegeben).",
+        "<strong>Distraktor-Anzeige</strong> — ein Abzeichen zeigt, ob für eine Aufgabe Distraktor-Blöcke aktiv sind."
+      ],
+      "actionsTitle": "Aktionen",
+      "actions": [
+        "<strong>🧩 Aufgabe lösen</strong> — öffnet die Schüler-Ansicht des Solvers (<code>/solve/:id</code>).",
+        "<strong>👩‍🏫 Aufgabe prüfen</strong> — öffnet den Solver mit sichtbaren Lehrer-Werkzeugen.",
+        "<strong>Sequenz teilen</strong> — kopiert einen schülerfreundlichen Link in die Zwischenablage.",
+        "<strong>✏️ Aufgabe bearbeiten</strong> — Aufgabenstellung oder Code ändern (nur Lehrkraft/Besitzer).",
+        "<strong>📤 Export</strong> — diese Sequenz als PDF (Puzzle oder Freiform) oder JSON/CSV herunterladen.",
+        "<strong>Zu Arbeitsblatt hinzufügen</strong> — direkt in eines deiner Arbeitsblätter kopieren."
+      ],
+      "teacherTitle": "Lehrer-Modus",
+      "teacher": [
+        "Für Lehrkräfte und Admins automatisch verfügbar.",
+        "Klappt unter jeder Aufgabenkarte das Lösungs-Akkordeon auf.",
+        "Zeigt die Distraktor-Blöcke neben der Musterlösung.",
+        "Erlaubt den Wechsel in die Lehrer-Ansicht des Solvers mit eingeblendeter Musterlösung."
+      ],
+      "studentTitle": "Schüler-Modus",
+      "student": [
+        "Es werden nur Aufgabenstellungen gezeigt — keine Musterlösungen.",
+        "Schüler klicken auf \"Aufgabe lösen\", um den interaktiven Solver zu öffnen."
+      ],
+      "editTitle": "Aufgaben bearbeiten und Versionierung",
+      "editBody": "Wenn dir eine Sequenz gehört (oder du sie kopiert hast), kannst du Aufgabenstellung und Code jeder Aufgabe bearbeiten. Beim <strong>ersten Speichern</strong> wird die ursprüngliche, vom LLM erzeugte Fassung automatisch für Vergleich und Forschung aufbewahrt. Du wirst beim ersten Speichern gebeten, die Qualität der LLM-Ausgabe zu bewerten (1–5 Sterne).",
+      "edit": [
+        "Bei fremden Sequenzen ist der Bearbeiten-Button gesperrt — kopiere zuerst das Arbeitsblatt."
+      ],
+      "similarTitle": "Das könnte dich auch interessieren…",
+      "similarBody": "Die Lehrer-Ansicht zeigt ein Panel mit Sequenzen, die Tags mit dieser hier teilen, sortiert nach Tag-Überschneidung und Sprachübereinstimmung — eine schnelle Möglichkeit, verwandtes Material ohne neue Suche zu finden. Ist nichts Ähnliches vorhanden, blendet sich das Panel selbst aus."
+    },
+    "solve": {
+      "title": "Hilfe zur Löse-Seite",
+      "intro": "Auf der Löse-Seite bearbeiten Lernende Parsons-Aufgaben — sie ordnen gemischte Code-Blöcke neu an (und erkennen Distraktor-Blöcke), um das korrekte Programm zu rekonstruieren.",
+      "howTitle": "So funktioniert es",
+      "how": [
+        "Die Blöcke liegen zu Beginn gemischt im Quellbereich. Verschiebe sie in der richtigen Reihenfolge in den Lösungsbereich.",
+        "Rücke Zeilen ein, um verschachtelte Strukturen zu erzeugen (Einrück-Griff ziehen oder die Einrück-Buttons verwenden).",
+        "Klicke jederzeit auf <strong>Überprüfe meine Lösung</strong>, um die Richtigkeit zu prüfen.",
+        "Nutze <strong>Zeilen mischen</strong>, um noch einmal neu zu mischen und von vorn zu beginnen."
+      ],
+      "modesTitle": "Interaktionsmodi",
+      "modes": [
+        "<strong>Drag-and-drop</strong> (Standard) — greife einen Block und lege ihn an der gewünschten Stelle ab.",
+        "<strong>Klick-zum-Verschieben</strong> — klicke einen Block an, um ihn auszuwählen (er wird hervorgehoben), und klicke dann auf die Zielposition. Besser für Trackpads und Tablets. Umschaltbar in der Werkzeugleiste; die Einstellung bleibt über Sitzungen hinweg erhalten.",
+        "<strong>Tastatur</strong> — mit Tab zwischen Blöcken wechseln, mit den Pfeiltasten den ausgewählten Block umsortieren. Zum Einrücken per Tastatur: Block auswählen und dann die Einrück-Buttons <kbd>+</kbd> / <kbd>−</kbd> in der Blockleiste verwenden, oder den Einrück-Griff am linken Blockrand ziehen.",
+        "<strong>Touch</strong> — auf dem Smartphone lange drücken, um einen Block auszuwählen, dann antippen, um ihn abzulegen."
+      ],
+      "colorsTitle": "Feedback-Farben",
+      "colors": [
+        "<span style=\"color:green\">🟩 Grün</span> — Zeile und Einrückung korrekt.",
+        "<span style=\"color:orange\">🟨 Gelb</span> — Einrückungswarnung (unkritisch, wird oft trotzdem akzeptiert).",
+        "<span style=\"color:red\">🟥 Rot</span> — falsche Position oder falsche Einrückung."
+      ],
+      "distractorTitle": "Distraktor-Blöcke",
+      "distractorBody": "Manche Puzzles enthalten Distraktor-Blöcke — plausibel wirkende Zeilen, die <em>nicht</em> zur richtigen Lösung gehören. Distraktor-Blöcke sehen aus wie echte Blöcke; ein Teil der Aufgabe besteht darin, sie zu erkennen und im Quellbereich liegen zu lassen.",
+      "distractor": [
+        "Ein Distraktor im Lösungsbereich wird beim Feedback immer rot markiert.",
+        "Hinweise helfen beim Erkennen von Distraktor-Blöcken (sie erscheinen als eigener Hinweistyp)."
+      ],
+      "interchangeableTitle": "Austauschbare Blöcke",
+      "interchangeableBody": "Manche Aufgaben enthalten Blöcke, die <em>an mehreren Positionen gleichermaßen richtig</em> sind — zum Beispiel zwei unabhängige Variablendeklarationen oder zwei unabhängige Basisfälle in einer rekursiven Funktion. Die Bewertung erkennt alle gültigen Reihenfolgen und markiert sie grün.",
+      "gapTitle": "Lückentext-Blöcke",
+      "gapBody": "Manche Blöcke enthalten statt fertigem Text ein kleines Eingabefeld — trage die fehlende Stelle direkt in die Lücke ein (einen Variablennamen, einen Wert, einen Operator). Sie wird zusammen mit der Blockposition geprüft und muss stimmen, damit die Aufgabe als gelöst gilt.",
+      "inlineSplitTitle": "Blöcke mit inneren Abschnitten",
+      "inlineSplit": [
+        "Manche Blöcke sind in mehrere Abschnitte unterteilt, die du zusätzlich <em>innerhalb</em> des Blocks anordnest — nicht nur den Block als Ganzes platzierst.",
+        "Eine solche Unterteilung kann auch Distraktor-Abschnitte enthalten, optisch identisch mit den echten — zusätzlich zu eventuellen Distraktor-Blöcken anderswo im Puzzle.",
+        "Eine falsche Reihenfolge der Abschnitte verhindert ebenfalls das \"gelöst\"-Urteil, genau wie eine falsche Lückenantwort."
+      ],
+      "contextTitle": "Kontext-Code",
+      "contextBody": "Manche Aufgaben zeigen ober- und/oder unterhalb des Puzzle-Bereichs einen <strong>grauen, schreibgeschützten Block</strong>. Das ist <em>Kontext-Code</em> — das umgebende Gerüst (z.B. eine Klassendefinition, ein Import-Block oder eine Funktion, die dein Ergebnis aufruft). Diese Blöcke verschiebst du <strong>nicht</strong>; sie sind fest. Sie zeigen dir, wo deine Lösung im Gesamtbild steht. Die Bewertung ignoriert sie — geprüft werden nur die beweglichen Puzzle-Blöcke.",
+      "hintsTitle": "Hinweise",
+      "hintsBody": "Wenn du nicht weiterkommst, klicke auf den Button <strong>Hinweis 💡</strong> (nur sichtbar, wenn Hinweise für dieses Arbeitsblatt aktiviert sind):",
+      "hints": [
+        "<strong>Stufe 1 (1 Credit)</strong> — ein Werkzeug zur statischen Analyse (Ruff für Python, javac + SpotBugs für Java) untersucht deine aktuelle Anordnung und hebt die problematischen Blöcke mit einem rot pulsierenden Rahmen hervor. Eine kurze Meldung erklärt die Fehlerart (z.B. \"Ein Block verwendet eine Variable, die noch nicht definiert wurde\").",
+        "<strong>Stufe 2 (2 Credits)</strong> — klicke auf \"Erklär es mir\", um eine vom LLM erzeugte Erklärung zu erhalten, die die hervorgehobenen Blöcke über ihre Kennbuchstaben (A, B, …) benennt und die Logik schülergerecht erläutert.",
+        "Hinweise verschwinden, sobald du einen Block bewegst — das soll zum Handeln anregen, nicht nur zum Lesen.",
+        "Ist für das Arbeitsblatt ein Budget gesetzt, stehen die verbleibenden Credits neben den Buttons: 💡 3/5. Sind sie aufgebraucht, werden beide Hinweis-Buttons deaktiviert."
+      ],
+      "completionTitle": "Abschluss",
+      "completionBody": "Wenn du das Puzzle richtig gelöst hast:",
+      "completion": [
+        "Es erscheint ein Banner <strong>\"Richtig gelöst!\"</strong> mit deiner Statistik: Versuche, Zeit, genutzte Hinweise.",
+        "Es kann eine kurze Selbsteinschätzung (Sicherheitsbewertung) erscheinen — das sind anonyme Forschungsdaten.",
+        "Über den Button <strong>\"Nächste Aufgabe\"</strong> geht es zur nächsten Stufe."
+      ],
+      "resumeTitle": "Arbeit speichern und fortsetzen",
+      "resume": [
+        "Deine Anordnung wird automatisch gespeichert, kurz nach jeder Bewegung — Tab schließen, neu laden oder wegnavigieren kostet dich keinen Fortschritt.",
+        "Öffnest du eine unfertige Aufgabe erneut, wird genau der Stand wiederhergestellt, den du zuletzt hattest, einschließlich Einrückung.",
+        "Hast du eine Aufgabe einmal gelöst, ist diese gelöste Anordnung ab dann das, was wiederhergestellt wird — selbst wenn du auf <strong>\"Aufgabe erneut lösen\"</strong> klickst und einen neuen Versuch später abbrichst, ohne erneut zu lösen.",
+        "<strong>\"Neu beginnen\"</strong> ist anders: Es erscheint nur bei einer unfertigen, noch nicht gelösten Anordnung und wirft sie absichtlich weg — beim nächsten Mal gibt es ein frisch gemischtes Puzzle."
+      ],
+      "navTitle": "Navigation",
+      "nav": [
+        "<strong>← Zurück zur Sequenz</strong> — führt zurück zur Sequenzübersicht.",
+        "<strong>🏠 Home</strong> — zurück zum Generator.",
+        "<strong>🔗 Aufgabe teilen</strong> — kopiert einen schülerfreundlichen Aufgabenlink in die Zwischenablage."
+      ],
+      "teacherToolsTitle": "Lehrer-Werkzeuge",
+      "teacherTools": [
+        "Schalte oben rechts den Lehrer-Modus um, um das Musterlösungs-Panel ein- oder auszublenden.",
+        "Der Kasten \"Lehrer-Werkzeuge\" (unten rechts) zeigt die Musterlösung und die Distraktorliste.",
+        "Der Teilen-Button kopiert eine Schüler-Version (ohne aktivierten Lehrer-Modus).",
+        "Die Kennbuchstaben (A, B, …) in der Musterlösung entsprechen den Kennbuchstaben in den Hinweisen — praktisch für die Besprechung im Unterricht."
+      ],
+      "studentTipsTitle": "Tipps für Schüler",
+      "studentTips": [
+        "Achte auf die Logik, nicht auf perfekte Syntax — die Bewertung toleriert kleine Abweichungen bei der Einrückung.",
+        "Nutze das Feedback schrittweise und rate nicht wild herum. Versuche, jeden roten Block zu verstehen, bevor du weitermachst.",
+        "Wenn ein Block rot bleibt, egal wohin du ihn legst, könnte es ein Distraktor sein.",
+        "Probiere Klick-zum-Verschieben, wenn sich Drag-and-drop auf deinem Gerät umständlich anfühlt.",
+        "Setze Hinweise gezielt ein — dein Credit-Budget pro Aufgabe ist begrenzt."
+      ]
+    },
+    "hints": {
+      "title": "Hilfe zum Hinweis-System",
+      "intro": "Das Hinweis-System bietet strukturierte, verlässliche Unterstützung, wenn ein Schüler nicht weiterkommt. Anders als rein LLM-basierte Hinweise sind die Hinweise von CodeOwl <strong>zuerst deterministisch</strong>: echte Werkzeuge zur statischen Analyse laufen über die aktuelle Blockanordnung des Schülers und identifizieren konkrete Probleme.",
+      "principle": "Entwurfsprinzip: <em>\"Möglichst deterministisch — kein LLM-Halluzinationsrisiko.\"</em>",
+      "howTitle": "So funktioniert es",
+      "how": [
+        "Die aktuelle Blockanordnung des Schülers wird zu einer vollständigen Codedatei zusammengesetzt.",
+        "Ein Werkzeug zur statischen Analyse läuft über diese Datei.",
+        "Die Befunde werden auf konkrete Block-IDs zurückgeführt.",
+        "Die betroffenen Blöcke werden mit einem rot pulsierenden Rahmen hervorgehoben.",
+        "Eine kurze pädagogische Meldung beschreibt die Fehlerart — ohne die Lösung zu verraten."
+      ],
+      "toolsTitle": "Analysewerkzeuge",
+      "tools": [
+        "<strong>Python → Ruff</strong> — extrem schneller Python-Linter. Wichtige Regeln: <code>F821</code> (undefinierter Name — Block wird vor seiner Definition verwendet), <code>F841</code> (unbenutzte Variable — Block könnte ein Distraktor sein), <code>E999</code> (Syntaxfehler), <code>F811</code> (Name erneut definiert).",
+        "<strong>Java → javac (Stufe 1)</strong> — Compiler-Meldungen erkennen undefinierte Variablen, Typfehler und nicht initialisierte Variablen.",
+        "<strong>Java → SpotBugs (Stufe 2)</strong> — Bytecode-Analyse für tiefer liegende Fehler (Null-Pointer-Pfade, tote Zuweisungen, überflüssige Null-Prüfungen). Läuft nur, wenn der Code kompiliert."
+      ],
+      "levelsTitle": "Hinweis-Stufen",
+      "levelsHead": [
+        "Stufe",
+        "Name",
+        "Quelle",
+        "Credits"
+      ],
+      "levelsRows": [
+        [
+          "0",
+          "Standard-Feedback",
+          "js-parsons (Prüfung von Position und Einrückung)",
+          "0 (kostenlos)"
+        ],
+        [
+          "1",
+          "Linter-Hinweis",
+          "Ruff / javac / SpotBugs → deterministisch",
+          "1"
+        ],
+        [
+          "2",
+          "\"Erklär es mir\"",
+          "Das LLM erklärt den Befund schülergerecht",
+          "2"
+        ]
+      ],
+      "levelsNote": "Stufe 2 ist keine Diagnose — das LLM bekommt den bereits ermittelten Befund und erklärt ihn lediglich. Es analysiert den Code nicht eigenständig.",
+      "distractorTitle": "Distraktor-bewusste Hinweise",
+      "distractorBody": "Liegt ein Distraktor-Block im Lösungsbereich des Schülers, erkennt das Hinweis-System das als vorrangiges Problem, noch bevor die vollständige Analyse läuft:",
+      "distractor": [
+        "Hinweistext: \"Einer der Blöcke in deinem Arbeitsbereich gehört nicht zur Lösung.\"",
+        "Der Distraktor-Block wird hervorgehoben — aber nicht ausdrücklich als Distraktor benannt."
+      ],
+      "edgeTitle": "Sonderfälle",
+      "edge": [
+        "<strong>Zu wenige Blöcke platziert</strong> — wenn im Lösungsbereich weniger Blöcke liegen als die richtige Antwort erfordert, sagt der Hinweis das sofort: \"Es wurden nur X von Y benötigten Blöcken platziert. Ziehe noch fehlende Blöcke in den Lösungsbereich.\" Das hat Vorrang vor allen anderen Befunden, damit du bei einer unvollständigen Anordnung keine irreführende Analyse bekommst.",
+        "<strong>Keine Befunde</strong> — wenn die Anordnung fehlerfrei kompiliert bzw. gelintet wird, aber trotzdem falsch ist, lautet die Ausweichmeldung: \"Keine statischen Fehler gefunden. Prüfe die Reihenfolge deiner Blöcke.\"",
+        "<strong>Mehrere Befunde</strong> — es werden nur die 2 schwerwiegendsten Befunde gezeigt, um den Schüler nicht zu überfordern.",
+        "<strong>Zeitüberschreitung oder Absturz des Werkzeugs</strong> — das Analysewerkzeug gilt dann als \"nichts gefunden\" statt laut zu scheitern, du bekommst also stillschweigend dieselbe Ausweichmeldung \"Keine statischen Fehler gefunden\" wie bei einer sauber kompilierenden, aber trotzdem falschen Anordnung."
+      ],
+      "configTitle": "Hinweise konfigurieren (Lehrkraft)",
+      "configBody": "Auf der Arbeitsblatt-Seite (Lehrer-Ansicht):",
+      "config": [
+        "<strong>Hinweise aktivieren</strong> — Checkbox. Aus = der Hinweis-Button wird komplett ausgeblendet.",
+        "<strong>Credits pro Aufgabe</strong> — 1–99, oder unbegrenzt (Standard). Fördert gezielten Einsatz statt Abhängigkeit."
+      ]
+    },
+    "distractors": {
+      "title": "Hilfe zum Distraktor-System",
+      "intro": "Distraktor-Blöcke sind plausibel wirkende, aber falsche Codezeilen, die unter die Puzzle-Blöcke gemischt werden. Der Schüler muss sie erkennen und im Quellbereich liegen lassen. Sie prüfen, ob Schüler den Code wirklich verstehen — und nicht nur umsortieren.",
+      "taxonomyTitle": "Distraktor-Taxonomie",
+      "taxonomyHead": [
+        "Typ",
+        "Beschreibung",
+        "Prüft"
+      ],
+      "taxonomyRows": [
+        [
+          "<code>LOGIC_FLIP</code>",
+          "Operator umgedreht (<code>&lt;</code> → <code>&gt;</code>, <code>==</code> → <code>!=</code>)",
+          "Verständnis von Bedingungen"
+        ],
+        [
+          "<code>OFF_BY_ONE</code>",
+          "Falsche Schleifengrenzen (<code>range(n)</code> statt <code>range(n+1)</code>)",
+          "Randwerte"
+        ],
+        [
+          "<code>VARIABLE_MISMATCH</code>",
+          "Richtige Form, aber falsche Variable im Ausdruck",
+          "Datenflussanalyse"
+        ],
+        [
+          "<code>BOUNDARY_IDENTITY</code>",
+          "Falscher Startwert oder falscher Basisfall",
+          "Rekursions- und Akkumulator-Denken"
+        ],
+        [
+          "<code>STRUCTURAL_ILLOGICAL</code>",
+          "Syntaktisch gültig, im Kontext aber unzulässig (<code>break</code> außerhalb einer Schleife)",
+          "Regeln des Kontrollflusses"
+        ],
+        [
+          "<code>REDUNDANT_ZOMBIE</code>",
+          "Plausible, aber überflüssige Zusatzzeile",
+          "Erkennen von überflüssigem Code"
+        ]
+      ],
+      "generationTitle": "Wie Distraktoren erzeugt werden",
+      "generation": [
+        "<strong>Plan</strong> — während der Sequenzgenerierung wählt das Modell pro Aufgabe einen Distraktor-Typ und eine Begründung (z.B. \"LOGIC_FLIP: Fokus auf boolesche Umkehrung bei vorzeitigen Abbrüchen\").",
+        "<strong>Solver-Durchlauf</strong> — die korrekte Lösung wird wie gewohnt erzeugt.",
+        "<strong>Antagonist-Aufruf</strong> — ein separater LLM-Aufruf (\"CodeOwl Antagonist\") erzeugt anhand des Plans die eigentlichen Distraktor-Zeilen. Intern enden Distraktoren mit <code>#distractor</code>."
+      ],
+      "generationNote": "Solver und Antagonist sind getrennt — der Antagonist sieht nur die korrekte Lösung und den Plan, nicht die interne Herleitung des Solvers.",
+      "controlsTitle": "Lehrer-Steuerung",
+      "controls": [
+        "<strong>Aktivieren/Deaktivieren</strong> — Distraktoren pro Aufgabe oder pro Sequenz während oder nach der Generierung umschalten.",
+        "<strong>Distraktoren bearbeiten</strong> — Aufgaben-Dialog öffnen → Reiter \"Distraktoren\" → Zeilen bearbeiten, ergänzen oder entfernen.",
+        "<strong>Neu erzeugen</strong> — klicke auf \"Distraktoren neu erzeugen\", um einen frischen Satz vom Antagonisten zu erhalten.",
+        "Der Distraktor-Plan (Typ und Begründung) wird als Kontext angezeigt, damit du weißt, worauf die KI abgezielt hat."
+      ],
+      "tipsTitle": "Tipps für Schüler",
+      "tips": [
+        "Wenn ein Block rot bleibt, egal wohin du ihn legst, ist es womöglich ein Distraktor.",
+        "Lies jeden Block sorgfältig — Distraktoren sind so gebaut, dass sie auf den ersten Blick plausibel wirken.",
+        "Hinweise helfen: Liegt ein Distraktor in deinem Lösungsbereich, weist das Hinweis-System gezielt darauf hin."
+      ]
+    },
+    "teacher": {
+      "title": "Hilfe zum Lehrer-Modus",
+      "intro": "Lehrkräfte und Admins haben auf allen Seiten automatisch Zugang zum Lehrer-Modus. Der Lehrer-Modus zeigt Musterlösungen, erlaubt das Bearbeiten und blendet Forschungswerkzeuge ein.",
+      "toggleTitle": "Lehrer-Modus umschalten",
+      "toggle": [
+        "Achte oben rechts auf den gelben Button <strong>\"Lehrer-Ansicht\"</strong> auf der Sequenz- und der Löse-Seite.",
+        "Schüler sehen diesen Button nie — Lehrer-Bedienelemente sind an die Rolle gebunden, nicht nur an die URL."
+      ],
+      "sequenceTitle": "Sequenz-Seite (Lehrkraft)",
+      "sequence": [
+        "Musterlösungen klappen in Akkordeon-Panels unter jeder Aufgabenkarte auf.",
+        "Die Distraktor-Blöcke werden neben der Lösung aufgeführt.",
+        "Die Buttons zum Bearbeiten, Exportieren und Kopieren sind sichtbar.",
+        "Ein Bewertungs-Abzeichen zeigt die LLM-Qualitätsbewertung, die beim ersten Bearbeiten der Aufgabe vergeben wurde."
+      ],
+      "solveTitle": "Löse-Seite (Lehrkraft)",
+      "solve": [
+        "Das Panel \"Lehrer-Werkzeuge\" (unten rechts) zeigt die Musterlösung mit Kennbuchstaben der Blöcke.",
+        "Der Teilen-Button erzeugt einen schülerfreundlichen Link (ohne Lehrer-Parameter).",
+        "Die Hinweis-Funktion steht zum Testen vollständig zur Verfügung, auch ohne Credit-Budget."
+      ],
+      "editTitle": "Aufgaben bearbeiten und Versionierung",
+      "edit": [
+        "Bearbeite jede eigene Aufgabe über den Button \"Bearbeiten\" auf der Sequenz-Seite.",
+        "Beim <strong>ersten Speichern</strong> wird das LLM-Original für den Forschungsvergleich in der Datenbank aufbewahrt.",
+        "Beim ersten Speichern bewertest du die Qualität des LLM-Originals (1–5 Sterne) — das fließt in den Forschungsdatensatz ein.",
+        "Alle Bearbeitungen und ihr Verlauf (begonnen / gespeichert / abgebrochen) werden als Lernereignisse für die Forschung protokolliert."
+      ],
+      "dataTitle": "Welche Daten werden erhoben?",
+      "dataBody": "CodeOwl v2 protokolliert strukturierte Lernereignisse zu Forschungszwecken (ereignisbasiert, JSONB). Dazu gehören:",
+      "data": [
+        "Öffnungs- und Schließzeiten von Aufgaben, Feedback-Klicks, Ereignisse für gelöst/abgebrochen",
+        "Jede einzelne Blockbewegung (für die Strategieanalyse)",
+        "Hinweisnutzung (Stufe, Zeitpunkt, welche Blöcke hervorgehoben wurden)",
+        "Distraktor-Interaktionen (platziert, entfernt, Verweildauer im Arbeitsbereich)",
+        "Bearbeitungsereignisse der Lehrkraft (begonnen, gespeichert, Dauer, geänderte Felder)",
+        "Selbsteinschätzungen (Sicherheit, Frustration — Smileys mit einem Klick nach dem Lösen)",
+        "Sitzungs-Metadaten (Gerätetyp, Fenstergröße — einmal pro Sitzung)"
+      ],
+      "dataNote": "Kein rohes Maus-Tracking, keine Tastenaufzeichnung, keine Beobachtung fremder Tabs. Aufgaben über einen geteilten Link ohne Anmeldung zu lösen ist möglich — diese Ereignisse haben <code>user_id = null</code>.",
+      "adminTitle": "Admin-Funktionen",
+      "admin": [
+        "<strong>Benutzerverwaltung</strong> — Benutzer ansehen, bearbeiten, befördern und löschen.",
+        "<strong>Sammel-Retagging</strong> — die Tag-Analyse über alle Sequenzen neu laufen lassen (nützlich nach Modell-Updates oder geänderter Tag-Konfiguration).",
+        "<strong>Bibliotheks-Admin</strong> — doppelte Tags zusammenführen, neu entdeckte Themen ansehen."
+      ],
+      "adminLink": "Zur vollständigen Admin-Dokumentation"
+    },
+    "manualCreate": {
+      "title": "Hilfe zum manuellen Aufgaben-Editor",
+      "intro": "Mit dem manuellen Aufgaben-Editor baust du eine Parsons-Sequenz ganz ohne LLM — du schreibst Aufgabenstellung und korrekten Lösungscode für jede Stufe selbst. Nutze ihn, wenn du volle Kontrolle willst, oder wenn du bereits Unterrichtsbeispiele hast, die du in Puzzles verwandeln möchtest.",
+      "workflowTitle": "Ablauf",
+      "workflow": [
+        "Lege <strong>Programmiersprache</strong> und <strong>Konzepte</strong> fest (kommagetrennt, z.B. <code>for-loop, arrays</code>).",
+        "Schreibe für jede Stufe (T1–T3) eine <strong>Aufgabenstellung</strong> und füge den <strong>korrekten Lösungscode</strong> ein.",
+        "Beobachte die <strong>Live-Blockvorschau</strong> rechts — sie zeigt genau, wie der Code in ziehbare Blöcke zerlegt wird.",
+        "Klicke auf <strong>\"Sequenz erstellen\"</strong>, um zu speichern. Du wirst auf die neue Sequenz-Seite weitergeleitet."
+      ],
+      "blocksTitle": "Wie aus Code Blöcke werden",
+      "blocksBody": "Jede <strong>nicht leere Zeile</strong> im Lösungseditor wird zu einem Block im Parsons-Puzzle. Die Einrückung im Code wird automatisch in Einrückungsebenen übersetzt — eine um 4 Leerzeichen eingerückte Zeile wird also zu einem Block auf Ebene 1, 8 Leerzeichen → Ebene 2 usw.",
+      "blocks": [
+        "Halte die Lösungen kompakt — 5 bis 12 nicht leere Zeilen sind der ideale Bereich.",
+        "Zeilen- und Zeichenzahl werden unter dem Editor angezeigt.",
+        "<kbd>Tab</kbd> fügt im Code-Editor 4 Leerzeichen ein (ohne Fokus-Falle)."
+      ],
+      "tiersTitle": "Stufen",
+      "tiers": [
+        "Beginne mit 1–3 Stufen. Jede Stufe ist ein eigenes Puzzle mit anderem Schwierigkeitsgrad.",
+        "Wechsle über die Reiter oben zwischen den Stufen — ein grünes ✓ bedeutet, dass diese Stufe sowohl Aufgabenstellung als auch Lösung hat.",
+        "Über die Auswahl <strong>Stufe</strong> weist du jedem Platz T1 (leicht), T2 (mittel) oder T3 (schwer) zu.",
+        "Mit den Buttons + / × kannst du Stufen hinzufügen oder entfernen."
+      ],
+      "compareTitle": "Manuell im Vergleich zum Generieren",
+      "compareHead": [
+        "",
+        "Manueller Editor",
+        "KI-Generator"
+      ],
+      "compareRows": [
+        [
+          "LLM im Einsatz?",
+          "Nein",
+          "Ja"
+        ],
+        [
+          "Tempo",
+          "So schnell wie du tippst",
+          "ca. 10–30 Sekunden"
+        ],
+        [
+          "Kontrolle",
+          "Vollständig — jedes Wort",
+          "Teilweise — Prompt und Einschränkungen"
+        ],
+        [
+          "Distraktoren",
+          "Nach dem Erstellen erzeugen",
+          "Beim Generieren aktivierbar"
+        ],
+        [
+          "Am besten für",
+          "Vorhandenen Unterrichtscode, Prüfungen",
+          "Schnelles Erkunden neuer Themen"
+        ]
+      ],
+      "tipsTitle": "Tipps",
+      "tips": [
+        "Nach dem Erstellen kannst du über die Sequenz-Seite weiterhin Distraktoren erzeugen.",
+        "Die Sequenz wird nach dem Erstellen automatisch getaggt — prüfe die Tags in der Bibliothek.",
+        "Die Stufen müssen nicht denselben Algorithmus verwenden — T1 könnte eine einfache Schleife sein, T3 eine rekursive Variante."
+      ]
+    },
+    "myClasses": {
+      "title": "Hilfe zu Meine Klassen (Schüler)",
+      "intro": "Die Seite \"Meine Klassen\" ist deine Startseite als Schüler. Sie zeigt alle Klassen, in die deine Lehrkraft dich aufgenommen hat, und von dort erreichst du die Arbeitsblätter, die deiner Klasse zugewiesen sind.",
+      "navTitle": "So kommst du zu den Aufgaben",
+      "nav": [
+        "Öffne <strong>Meine Klassen</strong> über die Navigationsleiste.",
+        "Klicke auf eine Klassenkarte, um die Detailseite der Klasse zu öffnen.",
+        "Du siehst die Arbeitsblätter, die deine Lehrkraft zugewiesen hat — klicke eines an, um es zu öffnen.",
+        "Das Arbeitsblatt listet alle Aufgabensequenzen. Klicke auf <strong>\"Aufgabe lösen\"</strong>, um ein Puzzle zu starten."
+      ],
+      "faqTitle": "Häufige Fragen",
+      "faq": [
+        "<strong>Meine Klassenliste ist leer.</strong> — Bitte deine Lehrkraft, dich aufzunehmen. Du musst einer Klasse hinzugefügt sein, bevor hier Arbeitsblätter erscheinen.",
+        "<strong>Ich sehe ein Arbeitsblatt nicht, das meine Lehrkraft erwähnt hat.</strong> — Vielleicht wurde es deiner Klasse noch nicht zugewiesen, oder du bist in der falschen Klasse.",
+        "<strong>Kann ich Aufgaben sehen, die meiner Klasse nicht zugewiesen sind?</strong> — Ja, wenn du einen direkten Link zu einer Sequenz oder einem Arbeitsblatt hast, kannst du sie trotzdem ansehen und anonym lösen."
+      ],
+      "accountTitle": "Dein Konto",
+      "account": [
+        "Deine Lehrkraft hat dein Konto angelegt und dir einen einmaligen Anmeldelink gegeben.",
+        "Nach der Anmeldung kannst du über dein <strong>Profil</strong> ein eigenes Passwort und eine Email setzen.",
+        "Dein Fortschritt (gelöste Aufgaben, genutzte Hinweise) wird in deinem Konto gespeichert."
+      ]
+    },
+    "admin": {
+      "title": "Hilfe zum Admin-Bereich",
+      "intro": "Die Admin-Werkzeuge geben dir den Gesamtüberblick über die CodeOwl-Plattform — Benutzerkonten, Tag-Pflege und Sammeloperationen in der Bibliothek. Diese Seiten sind für Lehrkräfte und Schüler nicht sichtbar.",
+      "usersTitle": "Benutzerverwaltung",
+      "users": [
+        "<strong>Alle Benutzer ansehen</strong> — Liste aller registrierten Konten mit Rolle, Email und Erstellungsdatum.",
+        "<strong>Rolle ändern</strong> — eine Lehrkraft zum Admin befördern oder wieder zurückstufen.",
+        "<strong>Benutzer löschen</strong> — entfernt das Konto. Sequenzen und Arbeitsblätter dieses Benutzers bleiben erhalten (die owner_id bleibt bestehen, aber der Benutzer kann sich nicht mehr anmelden).",
+        "<strong>Suchen / filtern</strong> — nach Rolle filtern oder nach Name/Email suchen."
+      ],
+      "libraryTitle": "Bibliotheks-Admin",
+      "library": [
+        "<strong>Sammel-Retagging</strong> — lässt die automatische <em>Tag</em>-Analyse über alle Sequenzen (oder nur die ohne LLM-Tag) neu laufen. Läuft als Hintergrundjob mit Live-Fortschrittsbalken und einer Liste früherer Läufe. Nutze das nach einem Update des Tagger-Modells oder nach geänderten Tag-Regeln.",
+        "<strong>Sammel-Konzept-Neuklassifizierung</strong> — derselbe Job-Typ, aber für die strukturelle <em>Konzept</em>-Erkennung statt Tags (alle Sequenzen, oder nur die ohne Konzept). Getrennt vom Sammel-Retagging, weil Tags und Konzepte unabhängige Systeme sind.",
+        "<strong>Neue-Themen-Bericht</strong> — Tags, die innerhalb eines wählbaren Zeitfensters (1–90 Tage) erstmals aufgetaucht sind, mit Nutzungszahl und einem Ein-Klick-\"Zusammenführen…\" in einen bestehenden Tag — der schnellste Weg, einen Tippfehler oder Beinahe-Dublette früh zu erwischen.",
+        "<strong>Tags zusammenführen</strong> — doppelte oder fast identische Tags zu einer kanonischen Form vereinen (z.B. <code>for_loop</code> + <code>for-loop</code> → <code>for-loop</code>). Alle Zuordnungen zu Sequenzen werden automatisch aktualisiert.",
+        "<strong>Tag-Übersicht</strong> — alle Tags nach Verwendungshäufigkeit sortiert ansehen; verwaiste oder kaum genutzte Tags erkennen, die aufgeräumt werden könnten."
+      ],
+      "databaseTitle": "Datenbank-Werkzeuge",
+      "database": [
+        "<strong>Vollständiges Backup</strong> — lädt einen kompletten <code>pg_dump</code> der Datenbank herunter, außerhalb der Anwendung wiederherstellbar, falls nötig.",
+        "<strong>Audit-Log</strong> — jedes Backup und jeder Forschungsdaten-Export, wer ihn ausgelöst hat, wann, Größe und Zeilenzahl, und ob er erfolgreich war."
+      ],
+      "researchTitle": "Forschungsdaten",
+      "research": [
+        "<strong>Vier Datensätze</strong> — Lernereignisse (jeder Blockzug, jeder Hinweis, jede Distraktor-Interaktion), Feedback-Klicks, Hinweisnutzung und die gespeicherten Anordnungen der Schüler. Umschalten über die Reiter.",
+        "<strong>Nach Klasse filtern</strong> — Lernereignisse und Feedback-Klicks tragen die Klasse, in der sie entstanden sind; der Filter ist damit exakt. Hinweise und Abgaben werden stattdessen über Klassenzugehörigkeit und Arbeitsblatt-Zuweisung zugeordnet.",
+        "<strong>CSV herunterladen</strong> — exportiert genau das, was die Filter auswählen, nicht nur die sichtbare Seite.",
+        "<strong>ZIP herunterladen</strong> — alle vier Datensätze der aktuellen Klasse plus eine <code>_metadata.json</code>, die festhält, mit welchen Filtern das Paket entstanden ist.",
+        "<strong>Pseudonym</strong> — die Zeilen enthalten UUIDs, niemals Namen oder E-Mail-Adressen. Beide Downloads werden im Audit-Log auf <code>/admin/database</code> protokolliert."
+      ],
+      "cautionTitle": "Vorsicht",
+      "caution": [
+        "Sammel-Retagging überschreibt vorhandene automatisch erzeugte Tags. <strong>Manuelle Tags werden nie angetastet.</strong>",
+        "Das Zusammenführen von Tags lässt sich über die Oberfläche nicht rückgängig machen — lege vor großen Merge-Operationen ein Datenbank-Backup an.",
+        "Beim Löschen von Benutzern werden deren Inhalte nicht mitgelöscht — prüfe, ob du verwaiste Sequenzen behalten willst."
+      ]
+    }
   }
 }

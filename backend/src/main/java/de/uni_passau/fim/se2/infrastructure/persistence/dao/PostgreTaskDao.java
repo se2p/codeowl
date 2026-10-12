@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -62,7 +62,7 @@ public class PostgreTaskDao implements TaskRepository {
         // task.getProgrammingLanguage() would always be null and the hint system
         // would silently fall back to "python" even for Java tasks.
         String sql = """
-                         SELECT t.id, t.statement, t.solution, t.tier_level, t.cyclomatic_complexity,
+                         SELECT t.id, t.statement, t.solution, t.tier_level, t.title, t.cyclomatic_complexity,
                                 t.sequence_id, t.lines_of_code, t.distinct_identifier_count,
                                 t.maximal_nesting_depth, t.method_call_count, t.distractors,
                                 t.distractor_plan, t.distractors_enabled,
@@ -81,6 +81,7 @@ public class PostgreTaskDao implements TaskRepository {
             target.setStatement(result.getStatement());
             target.setSolution(result.getSolution());
             target.setTierLevel(result.getTierLevel());
+            target.setTitle(result.getTitle());
             target.setCyclomaticComplexity(result.getCyclomaticComplexity());
             target.setSequenceId(result.getSequenceId());
             target.setLinesOfCode(result.getLinesOfCode());
@@ -113,7 +114,7 @@ public class PostgreTaskDao implements TaskRepository {
         }
 
         String sql = """
-                         SELECT id, statement, solution, tier_level, cyclomatic_complexity,
+                         SELECT id, statement, solution, tier_level, title, cyclomatic_complexity,
                                 sequence_id, lines_of_code, distinct_identifier_count,
                                 maximal_nesting_depth, method_call_count, distractors,
                                 distractor_plan, distractors_enabled,
@@ -144,9 +145,9 @@ public class PostgreTaskDao implements TaskRepository {
                              id, statement, solution, tier_level, cyclomatic_complexity,
                              sequence_id, lines_of_code, distinct_identifier_count,
                              maximal_nesting_depth, method_call_count, distractors, distractor_plan,
-                             context_before, context_after, split_plan
+                             context_before, context_after, split_plan, distractors_enabled, title
                          )
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?::jsonb)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?::jsonb, ?, ?)
                      """;
 
         UUID id = UUID.randomUUID();
@@ -166,7 +167,11 @@ public class PostgreTaskDao implements TaskRepository {
                     task.getDistractorPlan(),
                     task.getContextBefore(),
                     task.getContextAfter(),
-                    task.getSplitPlan() // AP31
+                    task.getSplitPlan(), // AP31
+                    // Without this the column falls back to its DEFAULT true, so a task with
+                    // distractors switched off came back on again the moment it was saved.
+                    task.isDistractorsEnabled(),
+                    task.getTitle()
         );
 
         task.setId(id);
@@ -188,9 +193,9 @@ public class PostgreTaskDao implements TaskRepository {
                              id, statement, solution, tier_level, cyclomatic_complexity,
                              sequence_id, lines_of_code, distinct_identifier_count,
                              maximal_nesting_depth, method_call_count, distractors, distractor_plan,
-                             context_before, context_after, split_plan
+                             context_before, context_after, split_plan, distractors_enabled, title
                          )
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      """;
 
         jdbc.batchUpdate(sql, tasks, tasks.size(), (ps, task) -> {
@@ -221,6 +226,10 @@ public class PostgreTaskDao implements TaskRepository {
                 log.error("Failed to set split_plan as jsonb", e);
                 ps.setNull(15, java.sql.Types.OTHER);
             }
+            // See save(TaskDTO): the column's DEFAULT true would otherwise re-enable
+            // distractors on any task that had them switched off.
+            ps.setBoolean(16, task.isDistractorsEnabled());
+            ps.setString(17, task.getTitle());
             task.setId(id);
         });
     }
@@ -320,6 +329,18 @@ public class PostgreTaskDao implements TaskRepository {
         }
         String sql = "UPDATE tasks SET distractors_enabled = ? WHERE id = ?";
         int updated = jdbc.update(sql, enabled, taskId);
+        if (updated != 1) {
+            throw new DomainValidationException("Task not found: " + taskId);
+        }
+    }
+
+    @Override
+    public void updateTitle(UUID taskId, String title) {
+        if (taskId == null) {
+            throw new DomainValidationException("Task ID cannot be null");
+        }
+        String sql = "UPDATE tasks SET title = ? WHERE id = ?";
+        int updated = jdbc.update(sql, title, taskId);
         if (updated != 1) {
             throw new DomainValidationException("Task not found: " + taskId);
         }

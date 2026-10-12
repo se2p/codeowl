@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -27,6 +27,7 @@ public interface UserRepository {
     UserDTO save(UserDTO user);
     Optional<UserDTO> findById(UUID userId);
     Optional<UserDTO> findByEmail(String email);
+    Optional<UserDTO> findByFimUid(String fimUid);
     List<UserDTO> findAll();
     void update(UserDTO user);
     void deleteById(UUID userId);

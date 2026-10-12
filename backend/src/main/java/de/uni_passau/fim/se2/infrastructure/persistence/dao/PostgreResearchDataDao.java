@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -48,6 +48,11 @@ public class PostgreResearchDataDao implements ResearchDataReader {
     @Override
     public List<Map<String, Object>> readFeedbackLogs() {
         return jdbc.queryForList("SELECT * FROM feedback_logs ORDER BY clicked_at");
+    }
+
+    @Override
+    public List<Map<String, Object>> readTaskSubmissions() {
+        return jdbc.queryForList("SELECT * FROM task_submissions ORDER BY updated_at");
     }
 
     @Override
@@ -103,6 +108,12 @@ public class PostgreResearchDataDao implements ResearchDataReader {
     @Override
     public List<Map<String, Object>> readClassStudents() {
         return jdbc.queryForList("SELECT * FROM class_students");
+    }
+
+    @Override
+    public List<Map<String, Object>> readClassStudents(java.util.UUID classId) {
+        return jdbc.queryForList(
+                "SELECT * FROM class_students WHERE class_id = ? ORDER BY joined_at", classId);
     }
 
     @Override

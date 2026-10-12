@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -20,15 +20,18 @@ package de.uni_passau.fim.se2.application.service.hints;
 
 import de.uni_passau.fim.se2.domain.entities.HintUsageDTO;
 import de.uni_passau.fim.se2.domain.entities.TaskDTO;
+import de.uni_passau.fim.se2.domain.model.SupportedLanguage;
 import de.uni_passau.fim.se2.domain.interfaces.HintUsageRepository;
 import de.uni_passau.fim.se2.domain.interfaces.TaskRepository;
 import de.uni_passau.fim.se2.application.service.OwnershipService;
+import de.uni_passau.fim.se2.application.service.WorksheetAccessService;
 import de.uni_passau.fim.se2.application.util.GapMarkers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +53,7 @@ public class HintService {
     private final TaskRepository taskRepository;
     private final HintUsageRepository hintUsageRepository;
     private final OwnershipService ownershipService;
+    private final WorksheetAccessService worksheetAccessService;
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -58,7 +62,8 @@ public class HintService {
                        BlockMapper blockMapper, HintGenerator hintGenerator,
                        HintExplainer hintExplainer, SarifParser sarifParser,
                        TaskRepository taskRepository, HintUsageRepository hintUsageRepository,
-                       OwnershipService ownershipService, JdbcTemplate jdbc) {
+                       OwnershipService ownershipService,
+                       WorksheetAccessService worksheetAccessService, JdbcTemplate jdbc) {
         this.codeAssembler = codeAssembler;
         this.ruffAnalyzer = ruffAnalyzer;
         this.javacAnalyzer = javacAnalyzer;
@@ -70,6 +75,7 @@ public class HintService {
         this.taskRepository = taskRepository;
         this.hintUsageRepository = hintUsageRepository;
         this.ownershipService = ownershipService;
+        this.worksheetAccessService = worksheetAccessService;
         this.jdbc = jdbc;
     }
 
@@ -95,11 +101,105 @@ public class HintService {
         }
     }
 
+    /**
+     * What one hint costs. Level 2 asks the LLM for an explanation on top of the
+     * deterministic finding, so it is charged double.
+     */
+    public static int creditCost(int hintLevel) {
+        return hintLevel >= 2 ? 2 : 1;
+    }
+
+    /**
+     * The credit budget configured for a task's worksheet, or {@code null} for
+     * unlimited — which is also the answer for a task that is not in any
+     * worksheet.
+     */
+    public Integer resolveCreditsPerTask(UUID taskId) {
+        String sql = """
+            SELECT w.hint_credits_per_task
+            FROM tasks t
+            JOIN worksheets_sequence ws ON ws.sequence_id = t.sequence_id
+            JOIN worksheets w ON w.id = ws.worksheet_id
+            WHERE t.id = ?
+            LIMIT 1
+            """;
+        try {
+            return jdbc.queryForObject(sql, Integer.class, taskId);
+        } catch (Exception e) {
+            // Standalone sequence (no worksheet) → unlimited
+            return null;
+        }
+    }
+
+    /**
+     * Credits this student has already spent on this task.
+     *
+     * Derived from hint_usage rather than a counter column, so resetting the
+     * puzzle does not refund anything: the usage rows outlive the reset.
+     * Anonymous requests cannot be attributed to anyone and always report 0.
+     */
+    public int creditsSpent(UUID taskId, UUID userId) {
+        if (userId == null) return 0;
+        String sql = """
+            SELECT COALESCE(SUM(CASE WHEN hint_level >= 2 THEN 2 ELSE 1 END), 0)
+            FROM hint_usage
+            WHERE user_id = ? AND task_id = ?
+            """;
+        Integer spent = jdbc.queryForObject(sql, Integer.class, userId, taskId);
+        return spent == null ? 0 : spent;
+    }
+
+    /**
+     * Everything the client needs to render the hint buttons: whether the
+     * teacher enabled hints at all, the budget, and what is left of it.
+     */
+    public HintStatus getStatus(UUID taskId, UUID userId) {
+        boolean enabled = isHintsEnabled(taskId);
+        Integer perTask = resolveCreditsPerTask(taskId);
+        int spent = creditsSpent(taskId, userId);
+        Integer remaining = perTask == null ? null : Math.max(0, perTask - spent);
+        return new HintStatus(enabled, perTask, spent, remaining);
+    }
+
     @Transactional
     public HintResponse getHint(UUID taskId, List<String> blockOrder, List<Integer> indentLevels, int hintLevel, UUID userId) {
+        return getHint(taskId, blockOrder, indentLevels, hintLevel, userId, HintLocale.DE);
+    }
+
+    /**
+     * @param locale the UI language the hint text should be written in; hints
+     *               used to be German-only, so a client that sends nothing keeps
+     *               German.
+     */
+    @Transactional
+    public HintResponse getHint(UUID taskId, List<String> blockOrder, List<Integer> indentLevels, int hintLevel,
+                                UUID userId, HintLocale locale) {
         // Guard against null inputs from the client — treat as empty lists rather than crashing.
         if (blockOrder == null) blockOrder = List.of();
         if (indentLevels == null) indentLevels = List.of();
+
+        // 0. Authorisation, before any analysis runs.
+        //
+        // Both checks live here rather than in the controller so there is a single
+        // place to bypass. Hiding the buttons in the UI is a convenience; this is
+        // what actually enforces the teacher's setting against a replayed request.
+        if (!isHintsEnabled(taskId)) {
+            throw new AccessDeniedException("Hints are disabled for this worksheet.");
+        }
+
+        // A closed worksheet may be read but not worked on, and asking for a hint
+        // is part of working on it.
+        worksheetAccessService.requireSolvable(taskId);
+
+        Integer creditsPerTask = resolveCreditsPerTask(taskId);
+        if (creditsPerTask != null && userId != null) {
+            int spent = creditsSpent(taskId, userId);
+            int cost = creditCost(hintLevel);
+            if (spent + cost > creditsPerTask) {
+                throw new AccessDeniedException(
+                        "No hint credits left for this task (" + spent + "/" + creditsPerTask + " used).");
+            }
+        }
 
         // 1. Load task to determine language + distractors
         TaskDTO task = new TaskDTO();
@@ -154,11 +254,11 @@ public class HintService {
         String explanation = null;
 
         if (hintLevel == 1) {
-            hintText = hintGenerator.generate(blockFindings, language, distractorBlockIndices, tooFewBlocks, studentNonDistractorCount, correctBlockCount);
+            hintText = hintGenerator.generate(blockFindings, language, distractorBlockIndices, tooFewBlocks, studentNonDistractorCount, correctBlockCount, locale);
         } else if (hintLevel == 2) {
-            hintText = hintGenerator.generate(blockFindings, language, distractorBlockIndices, tooFewBlocks, studentNonDistractorCount, correctBlockCount);
+            hintText = hintGenerator.generate(blockFindings, language, distractorBlockIndices, tooFewBlocks, studentNonDistractorCount, correctBlockCount, locale);
             explanation = hintExplainer.explain(blockFindings, assembly.code(), GapMarkers.strip(task.getSolution()), language,
-                    distractorBlockIndices, tooFewBlocks, studentNonDistractorCount, correctBlockCount);
+                    distractorBlockIndices, tooFewBlocks, studentNonDistractorCount, correctBlockCount, locale);
         }
 
         // 7. Get affected block indices (include distractor blocks as affected)
@@ -209,9 +309,9 @@ public class HintService {
     }
 
     private List<AnalysisFinding> runAnalysis(String code, String language) {
-        if ("python".equalsIgnoreCase(language)) {
+        if (SupportedLanguage.PYTHON.matches(language)) {
             return ruffAnalyzer.analyze(code);
-        } else if ("java".equalsIgnoreCase(language)) {
+        } else if (SupportedLanguage.JAVA.matches(language)) {
             JavacAnalyzer.JavacResult javacResult = javacAnalyzer.analyze(code);
             List<AnalysisFinding> findings = new ArrayList<>(javacResult.findings());
 
@@ -227,6 +327,12 @@ public class HintService {
 
             return findings;
         }
+        // Not python and not java: there is no analyzer for this, so the hint is built from
+        // no findings at all. That is a silent quality loss for the student, and the cause is
+        // always bad data rather than an unsupported language -- the column is free text
+        // filled from the language-detection LLM, and a typo ("Pyhton") lands here.
+        logger.warn("No static analysis for programming language '{}' -- hint will be generated "
+                + "without findings. Check tiered_task_sequences.programming_language.", language);
         return List.of();
     }
 
@@ -249,6 +355,14 @@ public class HintService {
             logger.error("Failed to serialize hint usage data", e);
         }
     }
+
+    /** Hint availability for one student on one task. */
+    public record HintStatus(
+        boolean hintsEnabled,
+        Integer creditsPerTask,  // null = unlimited
+        int creditsUsed,
+        Integer creditsRemaining // null = unlimited
+    ) {}
 
     // Response record
     public record HintResponse(

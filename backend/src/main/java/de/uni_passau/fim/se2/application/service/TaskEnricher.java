@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -161,13 +161,16 @@ public final class TaskEnricher {
         logger.debug("Enriched {} tasks in {}ms (parallel, distractors={}, context={})",
                 enrichedTasks.size(), elapsedMs, distractorsEnabled, contextModeEnabled);
 
-        return TieredTaskSequenceDTO.builder()
+        // toBuilder(), not a fresh builder() naming a handful of fields: naming fields by hand is
+        // exactly how tierCount, targetLanguage, constraints and curriculumTopicId went missing
+        // here before — their @Builder.Default values stepped in silently and made a five-tier
+        // sequence look like a perfectly ordinary three-tier one (see TieredTaskSequenceDTO
+        // .copyFor(), which hit the same failure mode on the worksheet-copy path and fixed it the
+        // same way). Only what must genuinely change is named below; everything else — including
+        // fields added after this comment — travels with the copy by default.
+        return incompleteSequence.toBuilder()
                 .id(UUID.randomUUID())
-                .programmingLanguage(incompleteSequence.getProgrammingLanguage())
-                .concepts(incompleteSequence.getConcepts())
                 .tasks(enrichedTasks)
-                .codeSnippet(incompleteSequence.getCodeSnippet())
-                .taskDescription(incompleteSequence.getTaskDescription())
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -259,18 +262,18 @@ public final class TaskEnricher {
                     ? generateSplitPlanForTask(finalPuzzle, lang, task.getStatement(), task.getTierLevel(), distractorsEnabled)
                     : null;
 
-            return TaskDTO.builder()
+            // toBuilder(), not a fresh builder() — see TaskDTO.copyFor(): naming fields by hand is
+            // how distractorsEnabled's @Builder.Default silently flipped a disabled task back on
+            // before. statement/tierLevel/contract/distractorPlan are unchanged from `task` and
+            // travel across automatically; only what this pass actually computes is named below.
+            return task.toBuilder()
                     .id(UUID.randomUUID())
-                    .statement(task.getStatement())
                     .solution(finalPuzzle)
-                    .tierLevel(task.getTierLevel())
                     .cyclomaticComplexity(complexity.cyclomaticComplexity())
                     .maximalNestingDepth(complexity.maxNestingDepth())
                     .distinctIdentifierCount(complexity.distinctIdentifierCount())
                     .linesOfCode(complexity.linesOfCode())
                     .methodCallCount(complexity.methodCallCount())
-                    .contract(task.getContract())
-                    .distractorPlan(task.getDistractorPlan())
                     .distractors(distractors)
                     .contextBefore(contextBefore)
                     .contextAfter(contextAfter)

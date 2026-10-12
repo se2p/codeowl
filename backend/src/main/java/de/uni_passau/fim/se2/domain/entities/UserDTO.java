@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -40,6 +40,8 @@ public class UserDTO {
     private boolean verified;
     private boolean active;
     private boolean mustChangePassword;
+    /** LDAP uid of the linked FIM-Account, null if the account has none. */
+    private String fimUid;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

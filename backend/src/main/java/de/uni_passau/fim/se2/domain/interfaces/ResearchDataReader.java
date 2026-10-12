@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -33,6 +33,8 @@ public interface ResearchDataReader {
     List<Map<String, Object>> readLearningEvents();
     List<Map<String, Object>> readFeedbackLogs();
     List<Map<String, Object>> readHintUsage();
+    /** The students' saved block arrangements — UI state, but the only record of what they built. */
+    List<Map<String, Object>> readTaskSubmissions();
     List<Map<String, Object>> readTaskChangeAnalyses();
     List<Map<String, Object>> readProblemStatementRatings();
     List<Map<String, Object>> readTasks();
@@ -44,6 +46,8 @@ public interface ResearchDataReader {
     List<Map<String, Object>> readWorksheets();
     List<Map<String, Object>> readClasses();
     List<Map<String, Object>> readClassStudents();
+    /** Roster of one class, for the per-class export bundle. */
+    List<Map<String, Object>> readClassStudents(java.util.UUID classId);
     List<Map<String, Object>> readClassWorksheets();
     List<Map<String, Object>> readSequenceTags();
     List<Map<String, Object>> readCurriculumTopics();

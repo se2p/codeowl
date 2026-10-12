@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -22,6 +22,7 @@ import de.uni_passau.fim.se2.domain.entities.*;
 import de.uni_passau.fim.se2.domain.exceptions.*;
 import de.uni_passau.fim.se2.domain.entities.TieredTaskSequenceDTO;
 import de.uni_passau.fim.se2.domain.entities.WorksheetDTO;
+import de.uni_passau.fim.se2.domain.model.WorksheetVisibility;
 import de.uni_passau.fim.se2.domain.exceptions.DomainValidationException;
 
 import java.util.*;
@@ -70,6 +71,20 @@ public interface WorksheetRepository {
      */
     void getWorksheetById(WorksheetDTO worksheet);
 
+    /**
+     * A worksheet, if there is one with that id.
+     *
+     * <p>The non-throwing counterpart to {@link #getWorksheetById(WorksheetDTO)}, which raises
+     * a validation error for an id that does not exist. That distinction leaks: an endpoint
+     * built on it answers 400 with "not found" for an unknown worksheet and 404 for one the
+     * caller may not see, which tells an unauthorised caller exactly which ids are real. With
+     * an empty result instead, both cases can answer the same way.
+     *
+     * @param worksheetId the worksheet to look for; {@code null} yields an empty result
+     * @return the worksheet with its sequence references, or empty
+     */
+    Optional<WorksheetDTO> findById(UUID worksheetId);
+
 
     /**
      * Associates a single {@link TieredTaskSequenceDTO} with the specified {@link WorksheetDTO}.
@@ -104,8 +119,51 @@ public interface WorksheetRepository {
     void removeSequenceFromWorksheet(WorksheetDTO worksheet, TieredTaskSequenceDTO sequence);
 
     /**
+     * Rewrites the display order of the sequences on a worksheet.
+     *
+     * @param worksheetId        the worksheet whose sequences are being reordered
+     * @param orderedSequenceIds every sequence currently on the worksheet, in the order they
+     *                           should appear — must be exactly the worksheet's current set,
+     *                           neither more nor fewer
+     * @throws DomainValidationException if the id is null, the list is null/empty, or the id set
+     *                                   does not exactly match the worksheet's current sequences
+     */
+    void reorderSequences(UUID worksheetId, List<UUID> orderedSequenceIds);
+
+    /**
+     * Whether {@code ownerId} owns any worksheet that contains {@code sequenceId}.
+     *
+     * <p>This is the "curator" relation behind {@link
+     * de.uni_passau.fim.se2.domain.model.SequenceCuratorPolicy}: a teacher who put a sequence
+     * into a worksheet of theirs may inspect it, whoever generated it. The same predicate
+     * already drives {@code alreadyInMyWorksheet} in the library listing; it lives here so
+     * both read the relation from one place rather than from two hand-written joins that can
+     * disagree.
+     *
+     * @param sequenceId the sequence in question; {@code null} yields {@code false}
+     * @param ownerId    the candidate curator; {@code null} yields {@code false}, because
+     *                   anonymous visitors curate nothing
+     */
+    boolean isCuratedBy(UUID sequenceId, UUID ownerId);
+
+    /**
      * Finds all worksheets owned by the specified user.
      */
     List<WorksheetDTO> findByOwnerId(UUID ownerId);
+
+    /**
+     * Sets a worksheet's visibility.
+     *
+     * <p>Its own method rather than a field on {@code updateWorksheet}, because publishing is a
+     * different act from editing: it is authorised differently, it is triggered from a separate
+     * control, and a full update would let a stale form overwrite a visibility the teacher had
+     * just changed in another tab.
+     *
+     * @param worksheetId the worksheet to change
+     * @param visibility  the new visibility
+     * @throws de.uni_passau.fim.se2.domain.exceptions.DomainValidationException
+     *         if no worksheet has that id
+     */
+    void updateVisibility(UUID worksheetId, WorksheetVisibility visibility);
 
 }

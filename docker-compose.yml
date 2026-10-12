@@ -8,7 +8,6 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"   # optional, nur falls du von Host drauf willst
     healthcheck:
@@ -16,6 +15,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
 
   backend:
     build:
@@ -38,6 +38,8 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      LDAP_URL: ${LDAP_URL:-ldaps://ldap01.fim.uni-passau.de/}
+      LDAP_BASE: ${LDAP_BASE:-ou=users,dc=fim,dc=uni-passau,dc=de}
     ports:
       - "8080:8080"
     # Maven wird jetzt im Build ausgeführt → kein Volume mehr nötig

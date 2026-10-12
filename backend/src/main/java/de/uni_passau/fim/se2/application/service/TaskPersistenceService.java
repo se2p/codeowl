@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -181,6 +182,101 @@ public class TaskPersistenceService {
     }
 
     /**
+     * Replaces a sequence's concepts with the given names, and returns them as
+     * stored. Names are resolved against the catalogue and created when absent,
+     * the same rule the curriculum learning-area form follows;
+     * {@code PostgreConceptDAO} lowercases them on the way in, so what comes
+     * back may differ in case from what was sent.
+     *
+     * <p>An empty set is refused rather than accepted: the persistence path
+     * has always required a sequence to carry at least one concept, and letting
+     * an edit strip the last one would leave a sequence that could never have
+     * been created that way.
+     *
+     * @param sequenceId the sequence to edit
+     * @param names      the concept names that should remain
+     * @return the sequence's concept names after the change, sorted
+     */
+    @Transactional
+    public List<String> updateSequenceConcepts(UUID sequenceId, List<String> names) {
+        if (sequenceId == null) {
+            throw new DomainValidationException("Sequence ID must not be null.");
+        }
+        List<String> cleaned = names == null ? List.of() : names.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(name -> !name.isEmpty())
+                .distinct()
+                .toList();
+        if (cleaned.isEmpty()) {
+            throw new DomainValidationException("Sequence concepts must not be empty.");
+        }
+
+        List<ConceptDTO> dtos = cleaned.stream()
+                .map(name -> {
+                    ConceptDTO dto = new ConceptDTO();
+                    dto.setName(name);
+                    return dto;
+                })
+                .toList();
+
+        sequenceRepo.replaceConcepts(sequenceId, conceptRepo.saveAll(dtos));
+        sequenceRepo.markDiverged(sequenceId);
+
+        TieredTaskSequenceDTO reloaded = new TieredTaskSequenceDTO();
+        reloaded.setId(sequenceId);
+        sequenceRepo.loadById(reloaded);
+        return reloaded.getConcepts();
+    }
+
+    /** Longest task description accepted, room for a few paragraphs. */
+    public static final int MAX_TASK_DESCRIPTION_LENGTH = 5000;
+
+    /**
+     * Replaces a sequence's task description. A blank one clears it.
+     *
+     * @return the stored description, trimmed, or {@code null} when cleared
+     */
+    @Transactional
+    public String updateTaskDescription(UUID sequenceId, String taskDescription) {
+        if (sequenceId == null) {
+            throw new DomainValidationException("Sequence ID must not be null.");
+        }
+        String normalized = (taskDescription == null || taskDescription.isBlank()) ? null : taskDescription.strip();
+        if (normalized != null && normalized.length() > MAX_TASK_DESCRIPTION_LENGTH) {
+            throw new DomainValidationException(
+                    "Task description must be at most " + MAX_TASK_DESCRIPTION_LENGTH + " characters.");
+        }
+        sequenceRepo.updateTaskDescription(sequenceId, normalized);
+        sequenceRepo.markDiverged(sequenceId);
+        return normalized;
+    }
+
+    /** Longest sequence name accepted; same bound as a task name. */
+    public static final int MAX_SEQUENCE_TITLE_LENGTH = 120;
+
+    /**
+     * Renames a sequence. A blank name clears it, so the sequence shows its default heading
+     * again.
+     *
+     * @return the stored name, trimmed, or {@code null} when cleared
+     */
+    @Transactional
+    public String updateSequenceTitle(UUID sequenceId, String title) {
+        if (sequenceId == null) {
+            throw new DomainValidationException("Sequence ID must not be null.");
+        }
+        String normalized = (title == null || title.isBlank()) ? null : title.strip();
+        if (normalized != null && normalized.length() > MAX_SEQUENCE_TITLE_LENGTH) {
+            throw new DomainValidationException(
+                    "Sequence name must be at most " + MAX_SEQUENCE_TITLE_LENGTH + " characters.");
+        }
+        sequenceRepo.updateTitle(sequenceId, normalized);
+        sequenceRepo.markDiverged(sequenceId);
+        return normalized;
+    }
+
+    /**
      * Loads all tasks for the given sequence.
      *
      * @param sequence the task sequence
@@ -196,8 +292,8 @@ public class TaskPersistenceService {
 
             List<TaskDTO> tasks = taskRepo.loadTasksBySequenceId(sequence);
             for (TaskDTO task : tasks) {
-                logger.info("Loaded task: {}", task);
-                logger.info("Setting programming language for task: {}", sequence.getProgrammingLanguage());
+                logger.debug("Loaded task: {}", task);
+                logger.debug("Setting programming language for task: {}", sequence.getProgrammingLanguage());
                 task.setProgrammingLanguage(sequence.getProgrammingLanguage());
             }
             logger.debug("Loaded {} tasks for sequence {}", tasks.size(), sequence.getId());
@@ -369,6 +465,28 @@ public class TaskPersistenceService {
     public void updateDistractors(UUID taskId, String distractors) {
         if (taskId == null) throw new DomainValidationException("Task ID must not be null.");
         taskRepo.updateDistractors(taskId, distractors);
+        sequenceRepo.markDivergedByTaskId(taskId);
+    }
+
+    /** Longest task name accepted: room for a descriptive heading, short enough to stay one. */
+    public static final int MAX_TITLE_LENGTH = 120;
+
+    /**
+     * Renames a task. A blank name clears it, so the task shows its numbered default again.
+     *
+     * @return the stored name, trimmed, or {@code null} when cleared
+     */
+    @Transactional
+    public String updateTitle(UUID taskId, String title) {
+        if (taskId == null) throw new DomainValidationException("Task ID must not be null.");
+        String normalized = (title == null || title.isBlank()) ? null : title.strip();
+        if (normalized != null && normalized.length() > MAX_TITLE_LENGTH) {
+            throw new DomainValidationException(
+                    "Task name must be at most " + MAX_TITLE_LENGTH + " characters.");
+        }
+        taskRepo.updateTitle(taskId, normalized);
+        sequenceRepo.markDivergedByTaskId(taskId);
+        return normalized;
     }
 
     /**
@@ -378,6 +496,7 @@ public class TaskPersistenceService {
     public void updateDistractorsEnabled(UUID taskId, boolean enabled) {
         if (taskId == null) throw new DomainValidationException("Task ID must not be null.");
         taskRepo.updateDistractorsEnabled(taskId, enabled);
+        sequenceRepo.markDivergedByTaskId(taskId);
     }
 
     public void tagSequence(UUID sequenceId, UUID evalInputId, String mode, UUID runId) {
@@ -390,5 +509,11 @@ public class TaskPersistenceService {
     @Transactional(readOnly = true)
     public List<TieredTaskSequenceDTO> findSequencesByOwnerId(UUID ownerId) {
         return sequenceRepo.findByOwnerId(ownerId);
+    }
+
+    /** Removes a sequence from the library and the owner's list; worksheets keep it. */
+    @Transactional
+    public boolean deleteSequence(UUID sequenceId) {
+        return sequenceRepo.softDeleteById(sequenceId);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -76,6 +76,19 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         String token = authService.login(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok(loginResponse(token));
+    }
+
+    /**
+     * Handles login requests with a FIM-Account (checked against the FIM LDAP server).
+     */
+    @PostMapping("/login/fim")
+    public ResponseEntity<AuthResponse> loginWithFimAccount(@Valid @RequestBody FimLoginRequest request) {
+        String token = authService.loginWithFimAccount(request.getUsername(), request.getPassword());
+        return ResponseEntity.ok(loginResponse(token));
+    }
+
+    private AuthResponse loginResponse(String token) {
         UserDTO user = authService.getUserFromToken(token);
         List<String> classIds = null;
         if (user.getRole() == UserDTO.UserRole.STUDENT) {
@@ -83,16 +96,17 @@ public class AuthController {
                     .map(c -> c.getId().toString())
                     .toList();
         }
-        return ResponseEntity.ok(AuthResponse.builder()
-                                         .token(token)
-                                         .role(user.getRole().name())
-                                         .email(user.getEmail())
-                                         .firstName(user.getFirstName())
-                                         .lastName(user.getLastName())
-                                         .userId(user.getUserId().toString())
-                                         .classIds(classIds)
-                                         .mustChangePassword(user.isMustChangePassword() ? true : null)
-                                         .build());
+        return AuthResponse.builder()
+                .token(token)
+                .role(user.getRole().name())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .userId(user.getUserId().toString())
+                .classIds(classIds)
+                .mustChangePassword(user.isMustChangePassword() ? true : null)
+                .fimAccount(user.getFimUid() != null ? true : null)
+                .build();
     }
 
     /**
@@ -168,6 +182,7 @@ public class AuthController {
                                          .firstName(user.getFirstName())
                                          .lastName(user.getLastName())
                                          .userId(user.getUserId().toString())
+                                         .fimAccount(user.getFimUid() != null ? true : null)
                                          .build());
     }
 
@@ -240,5 +255,15 @@ public class AuthController {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<?> handleAuthException(AuthenticationException e) {
         return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+    }
+
+    /**
+     * Handles an unreachable FIM LDAP server during FIM-Account login.
+     */
+    @ExceptionHandler(DirectoryUnavailableException.class)
+    public ResponseEntity<?> handleDirectoryUnavailable(DirectoryUnavailableException e) {
+        return ResponseEntity.status(503).body(Map.of(
+                "error", "Die FIM-Anmeldung ist gerade nicht erreichbar. Bitte versuche es später erneut."
+        ));
     }
 }

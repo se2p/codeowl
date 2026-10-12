@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -25,16 +25,17 @@ import de.uni_passau.fim.se2.api.dto.TaskEditRequest;
 import de.uni_passau.fim.se2.application.service.FeedbackLogService;
 import de.uni_passau.fim.se2.application.service.ManualTaskService;
 import de.uni_passau.fim.se2.application.service.OwnershipService;
+import de.uni_passau.fim.se2.application.service.TaskSubmissionService;
+import de.uni_passau.fim.se2.application.service.WorksheetAccessService;
 import de.uni_passau.fim.se2.application.service.TaskEditService;
 import de.uni_passau.fim.se2.application.service.TaskEnricher;
 import de.uni_passau.fim.se2.application.service.TaskGeneratorService;
 import de.uni_passau.fim.se2.application.service.TaskPersistenceService;
-import de.uni_passau.fim.se2.application.service.WorksheetService;
 import de.uni_passau.fim.se2.application.util.GapMarkers;
 import de.uni_passau.fim.se2.domain.entities.GenerationConstraints;
 import de.uni_passau.fim.se2.domain.entities.TaskDTO;
 import de.uni_passau.fim.se2.domain.entities.TieredTaskSequenceDTO;
-import de.uni_passau.fim.se2.domain.entities.WorksheetDTO;
+import de.uni_passau.fim.se2.domain.entities.TaskSubmissionDTO;
 import de.uni_passau.fim.se2.domain.interfaces.TaskOriginalRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -65,18 +66,19 @@ public class TasksController {
 
     private final TaskGeneratorService taskGeneratorService;
     private final TaskPersistenceService taskPersistenceService;
-    private final WorksheetService worksheetService;
     private final OwnershipService ownershipService;
     private final TaskEditService taskEditService;
     private final ManualTaskService manualTaskService;
     private final TaskOriginalRepository taskOriginalRepository;
     private final FeedbackLogService feedbackLogService;
     private final TaskEnricher taskEnricher;
+    private final TaskSubmissionService taskSubmissionService;
+    private final WorksheetAccessService worksheetAccessService;
 
     /**
      * Generate a new task sequence.
-     * Allowed: Anonymous, Teacher, Admin
-     * Denied: Students (logged-in students cannot generate)
+     * Allowed: Teacher, Admin
+     * Denied: Anonymous and Students (enforced in SecurityConfig)
      */
     @PostMapping("/tasks/generate")
     public ResponseEntity<TieredTaskSequenceDTO> generateTaskSequence(
@@ -142,6 +144,27 @@ public class TasksController {
     }
 
     /**
+     * Replace a sequence's concepts. The teacher view on the sequence page
+     * edits them as a set, so this is a PUT of the whole list rather than
+     * add/remove endpoints.
+     * Allowed: the sequence's owner, and admins.
+     */
+    @PutMapping("/sequence/{id}/concepts")
+    public ResponseEntity<List<String>> updateSequenceConcepts(
+            @PathVariable UUID id,
+            @RequestBody UpdateConceptsRequest request) {
+
+        TieredTaskSequenceDTO seq = taskPersistenceService.loadSequenceById(id);
+        if (seq == null) {
+            return ResponseEntity.notFound().build();
+        }
+        ownershipService.checkOwnership(seq.getOwnerId(), "sequence concepts");
+
+        return ResponseEntity.ok(
+                taskPersistenceService.updateSequenceConcepts(id, request == null ? null : request.getConcepts()));
+    }
+
+    /**
      * Get a single task by ID. Public endpoint.
      * AP15: If distractorsEnabled=false and requester is not the owner/admin,
      * distractors are stripped from the response (kept in DB, not delivered).
@@ -188,15 +211,78 @@ public class TasksController {
         return ResponseEntity.created(location).body(seq);
     }
 
+
     /**
-     * Get all worksheets owned by the current user.
+     * Whether the current user may still work on this task, or only read it.
+     *
+     * Drives the solve page's read-only mode. Not the enforcement point: the
+     * services that record solving re-check it, so a client that ignores this
+     * still cannot write.
      */
-    @GetMapping("/worksheets/my")
-    public ResponseEntity<List<WorksheetDTO>> getMyWorksheets() {
-        UUID userId = ownershipService.getCurrentUserId();
-        if (userId == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(worksheetService.findByOwnerId(userId));
+    @GetMapping("/tasks/{taskId}/access")
+    public ResponseEntity<Map<String, Object>> getTaskAccess(@PathVariable UUID taskId) {
+        return ResponseEntity.ok(Map.of("canSolve", worksheetAccessService.canSolve(taskId)));
     }
+
+    /**
+     * The current student's solved arrangement of a task, so reopening it shows
+     * their work instead of a reshuffled puzzle.
+     *
+     * 204 when there is nothing stored — including for anonymous visitors, who
+     * have nobody to store work against.
+     */
+    @GetMapping("/tasks/{taskId}/submission")
+    public ResponseEntity<TaskSubmissionDTO> getMySubmission(@PathVariable UUID taskId) {
+        UUID userId = ownershipService.getCurrentUserId();
+        return taskSubmissionService.find(userId, taskId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /**
+     * Records the arrangement a student had when they solved a task.
+     *
+     * Replaces any earlier one for the same student and task. Anonymous solves
+     * are accepted and quietly ignored, so a shared-link visitor is not shown an
+     * error for something that is not their problem.
+     */
+    @PutMapping("/tasks/{taskId}/submission")
+    public ResponseEntity<Void> saveMySubmission(@PathVariable UUID taskId,
+                                                 @RequestBody TaskSubmissionRequest request) {
+        UUID userId = ownershipService.getCurrentUserId();
+        taskSubmissionService.saveSolved(userId, taskId, request.blockOrder(), request.indentLevels());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Autosaves the arrangement a student currently has, without claiming they solved it.
+     *
+     * Called repeatedly while a student works, so it is deliberately cheap and forgiving: an
+     * empty arrangement is valid, and anonymous callers are ignored rather than rejected.
+     */
+    @PutMapping("/tasks/{taskId}/submission/progress")
+    public ResponseEntity<Void> saveMyProgress(@PathVariable UUID taskId,
+                                               @RequestBody TaskSubmissionRequest request) {
+        UUID userId = ownershipService.getCurrentUserId();
+        taskSubmissionService.saveProgress(userId, taskId, request.blockOrder(), request.indentLevels());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Throws away the current student's stored arrangement for a task.
+     *
+     * What the "start over" control calls, so the next visit deals a fresh puzzle instead of
+     * restoring work the student has chosen to abandon.
+     */
+    @DeleteMapping("/tasks/{taskId}/submission")
+    public ResponseEntity<Void> discardMySubmission(@PathVariable UUID taskId) {
+        UUID userId = ownershipService.getCurrentUserId();
+        taskSubmissionService.discard(userId, taskId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** The solution area as the student left it. */
+    public record TaskSubmissionRequest(List<String> blockOrder, List<Integer> indentLevels) {}
 
     /**
      * Get all sequences owned by the current user.
@@ -209,134 +295,24 @@ public class TasksController {
     }
 
     /**
-     * Get a worksheet by ID. Public endpoint (anyone can view via link).
+     * Delete one of your own sequences. It leaves the library and your list, but stays in any
+     * worksheet that already contains it, so work in progress is not disrupted.
+     * Allowed: Owner, Admin.
      */
-    @GetMapping("/worksheets/{sheetId}")
-    public ResponseEntity<WorksheetDTO> getWorksheetById(@PathVariable UUID sheetId) {
-        WorksheetDTO worksheet = worksheetService.loadWorksheetById(sheetId);
-        if (worksheet == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(worksheet);
-    }
-
-    /**
-     * Create a new worksheet.
-     * Allowed: Teacher (becomes owner), Admin
-     * Denied: Anonymous, Students
-     */
-    @PostMapping("/worksheets")
-    public ResponseEntity<WorksheetDTO> createWorksheet(@RequestBody WorksheetDTO worksheet) {
-        ownershipService.denyStudents("create worksheets");
-
-        UUID currentUserId = ownershipService.getCurrentUserId();
-        if (currentUserId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        worksheet.setOwnerId(currentUserId);
-        worksheetService.createWorksheet(worksheet);
-        var location = java.net.URI.create("/api/worksheets/" + worksheet.getId());
-        return ResponseEntity.created(location).body(worksheet);
-    }
-
-    /**
-     * Update a worksheet.
-     * Allowed: Owner, Admin
-     * Denied: Everyone else
-     */
-    @PutMapping("/worksheets/{sheetId}")
-    public ResponseEntity<Void> updateWorksheet(@PathVariable UUID sheetId, @RequestBody WorksheetDTO worksheet) {
-        WorksheetDTO existing = worksheetService.loadWorksheetById(sheetId);
-        if (existing == null) return ResponseEntity.notFound().build();
-
-        ownershipService.checkOwnership(existing.getOwnerId(), "worksheet");
-
-        worksheet.setId(sheetId);
-        worksheet.setOwnerId(existing.getOwnerId()); // preserve owner
-        worksheetService.updateWorksheet(worksheet);
+    @DeleteMapping("/sequence/{seqId}")
+    public ResponseEntity<Void> deleteSequence(@PathVariable UUID seqId) {
+        requireSequenceOwnerOrAdmin(seqId);
+        taskPersistenceService.deleteSequence(seqId);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Delete a worksheet.
-     * Allowed: Owner, Admin
-     * Denied: Everyone else
-     */
-    @DeleteMapping("/worksheets/{sheetId}")
-    public ResponseEntity<Void> deleteWorksheet(@PathVariable UUID sheetId) {
-        WorksheetDTO existing = worksheetService.loadWorksheetById(sheetId);
-        if (existing == null) return ResponseEntity.notFound().build();
 
-        ownershipService.checkOwnership(existing.getOwnerId(), "worksheet");
 
-        worksheetService.deleteWorksheet(sheetId);
-        return ResponseEntity.noContent().build();
-    }
 
-    /**
-     * Add a single sequence to a worksheet.
-     * Allowed: Owner of worksheet, Admin
-     */
-    @PostMapping("/worksheets/{sheetId}/sequences/{sequenceId}")
-    public ResponseEntity<Void> addSequenceToWorksheet(@PathVariable UUID sheetId, @PathVariable UUID sequenceId) {
-        WorksheetDTO existing = worksheetService.loadWorksheetById(sheetId);
-        if (existing == null) return ResponseEntity.notFound().build();
 
-        ownershipService.checkOwnership(existing.getOwnerId(), "worksheet");
 
-        worksheetService.addSequenceToWorksheet(sheetId, sequenceId);
-        return ResponseEntity.noContent().build();
-    }
 
-    /**
-     * Add multiple sequences to a worksheet.
-     * Allowed: Owner of worksheet, Admin
-     */
-    @PostMapping("/worksheets/{sheetId}/sequences")
-    public ResponseEntity<Void> addSequencesToWorksheet(@PathVariable UUID sheetId,
-                                                        @RequestBody List<UUID> sequenceIds) {
-        WorksheetDTO existing = worksheetService.loadWorksheetById(sheetId);
-        if (existing == null) return ResponseEntity.notFound().build();
 
-        ownershipService.checkOwnership(existing.getOwnerId(), "worksheet");
-
-        worksheetService.addSequencesToWorksheet(sheetId, sequenceIds);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Remove a sequence from a worksheet.
-     * Allowed: Owner of worksheet, Admin
-     */
-    @DeleteMapping("/worksheets/{sheetId}/sequences/{sequenceId}")
-    public ResponseEntity<Void> removeSequenceFromWorksheet(@PathVariable UUID sheetId, @PathVariable UUID sequenceId) {
-        WorksheetDTO existing = worksheetService.loadWorksheetById(sheetId);
-        if (existing == null) return ResponseEntity.notFound().build();
-
-        ownershipService.checkOwnership(existing.getOwnerId(), "worksheet");
-
-        worksheetService.removeSequenceFromWorksheet(sheetId, sequenceId);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Deep-copy a worksheet (with all sequences and tasks).
-     * The copy belongs to the current authenticated user.
-     * Allowed: TEACHER, ADMIN
-     * Denied: Students, Anonymous
-     */
-    @PostMapping("/worksheets/{sheetId}/copy")
-    public ResponseEntity<WorksheetDTO> copyWorksheet(@PathVariable UUID sheetId) {
-        ownershipService.denyStudents("copy worksheets");
-
-        UUID currentUserId = ownershipService.getCurrentUserId();
-        if (currentUserId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        WorksheetDTO copy = worksheetService.copyWorksheet(sheetId, currentUserId);
-        var location = java.net.URI.create("/api/worksheets/" + copy.getId());
-        return ResponseEntity.created(location).body(copy);
-    }
 
     /**
      * AP15b: Generate distractors on-demand for a single existing task.
@@ -412,6 +388,58 @@ public class TasksController {
         return ResponseEntity.ok(updated);
     }
 
+    /**
+     * Replace a sequence's task description. A blank one clears it.
+     * Allowed: the sequence's owner, and admins.
+     */
+    @PutMapping("/sequence/{id}/task-description")
+    public ResponseEntity<Map<String, String>> updateSequenceTaskDescription(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+
+        TieredTaskSequenceDTO seq = taskPersistenceService.loadSequenceById(id);
+        if (seq == null) {
+            return ResponseEntity.notFound().build();
+        }
+        ownershipService.checkOwnership(seq.getOwnerId(), "sequence task description");
+
+        String stored = taskPersistenceService.updateTaskDescription(id, body.get("taskDescription"));
+        // Map.of rejects null values, and a cleared description is null.
+        Map<String, String> response = new java.util.HashMap<>();
+        response.put("taskDescription", stored);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Rename a sequence. Body: {@code {"title": "..."}}; a blank or missing title restores the
+     * default heading.
+     * Allowed: the sequence's owner, and admins.
+     */
+    @PatchMapping("/sequence/{id}/title")
+    public ResponseEntity<Map<String, String>> renameSequence(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+
+        TieredTaskSequenceDTO seq = taskPersistenceService.loadSequenceById(id);
+        if (seq == null) {
+            return ResponseEntity.notFound().build();
+        }
+        ownershipService.checkOwnership(seq.getOwnerId(), "sequence title");
+
+        String stored = taskPersistenceService.updateSequenceTitle(id, body.get("title"));
+        // Map.of rejects null values, and a cleared name is null.
+        Map<String, String> response = new java.util.HashMap<>();
+        response.put("title", stored);
+        return ResponseEntity.ok(response);
+    }
+
+    /** Body of PUT /api/sequence/{id}/concepts — the full new set of names. */
+    @Setter
+    @Getter
+    public static class UpdateConceptsRequest {
+        private List<String> concepts;
+    }
+
     @Setter
     @Getter
     public static class TaskGenerationRequest {
@@ -479,6 +507,24 @@ public class TasksController {
         boolean enabled = body.getOrDefault("enabled", true);
         taskPersistenceService.updateDistractorsEnabled(taskId, enabled);
         task.setDistractorsEnabled(enabled);
+        return ResponseEntity.ok(task);
+    }
+
+    /**
+     * Rename a task. Body: {@code {"title": "..."}}; a blank or missing title restores the
+     * numbered default.
+     * Allowed: Owner of parent sequence, Admin.
+     */
+    @PatchMapping("/tasks/{taskId}/title")
+    public ResponseEntity<TaskDTO> renameTask(
+            @PathVariable UUID taskId,
+            @RequestBody Map<String, String> body) {
+        TaskDTO task = taskPersistenceService.loadTaskById(taskId);
+        if (task == null) return ResponseEntity.notFound().build();
+
+        requireSequenceOwnerOrAdmin(task.getSequenceId());
+
+        task.setTitle(taskPersistenceService.updateTitle(taskId, body.get("title")));
         return ResponseEntity.ok(task);
     }
 

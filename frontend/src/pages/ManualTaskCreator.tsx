@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { useHomePath } from "../hooks/useHomePath.ts";
 import { renderGapLine } from "../lib/gapMarkers";
 import CodeSolutionEditor from "../components/CodeSolutionEditor";
 import type { SplitEntry } from "../types/models";
 import "bootstrap/dist/css/bootstrap.min.css";
+import ConceptPicker from "../components/ConceptPicker";
+import { useConceptCatalogue } from "../hooks/useConceptCatalogue";
 
 /* ────────────────────────────────────────────────────────────── */
 /*  Types                                                        */
@@ -33,12 +36,14 @@ const EMPTY_TIER = (level: number): TierEntry => ({
 
 export default function ManualTaskCreator() {
     const { t } = useTranslation();
-    usePageTitle("CodeOwl - Manual Task Creator");
+    usePageTitle(t("manual.pageTitle"));
+    const homePath = useHomePath();
     const navigate = useNavigate();
 
     // ── Form state ──────────────────────────────────────────
     const [language, setLanguage] = useState("");
-    const [concepts, setConcepts] = useState("");
+    const [concepts, setConcepts] = useState<string[]>([]);
+    const conceptCatalogue = useConceptCatalogue();
     const [tiers, setTiers] = useState<TierEntry[]>([
         EMPTY_TIER(1),
         EMPTY_TIER(2),
@@ -48,14 +53,15 @@ export default function ManualTaskCreator() {
     // ── UI state ────────────────────────────────────────────
     const [activeTier, setActiveTier] = useState(0); // index into tiers[]
     const [submitting, setSubmitting] = useState(false);
+    const [generatingDistractors, setGeneratingDistractors] = useState(false);
+    const [generateDistractors, setGenerateDistractors] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [previewLines, setPreviewLines] = useState<string[]>([]);
 
     // ── Derived ─────────────────────────────────────────────
-    const conceptTokens = concepts
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean);
+    // Kept as a name so the rest of the file reads unchanged; the picker
+    // already hands over a clean, de-duplicated list.
+    const conceptTokens = concepts;
 
     // ── Tier helpers ────────────────────────────────────────
     const updateTier = useCallback(
@@ -140,6 +146,17 @@ export default function ManualTaskCreator() {
             };
 
             const { data } = await api.post("/tasks/manual", payload);
+
+            // Same on-demand endpoint the sequence page uses. The sequence already exists
+            // at this point, so a failure here must not look like a failed creation.
+            if (generateDistractors) {
+                setGeneratingDistractors(true);
+                try {
+                    await api.post(`/sequence/${data.id}/generate-distractors`);
+                } catch {
+                    alert(t("manual.distractorsFailed"));
+                }
+            }
             navigate(`/sequence/${data.id}`);
         } catch (err: any) {
             const msg =
@@ -150,6 +167,7 @@ export default function ManualTaskCreator() {
             setError(typeof msg === "string" ? msg : JSON.stringify(msg));
         } finally {
             setSubmitting(false);
+            setGeneratingDistractors(false);
         }
     };
 
@@ -212,32 +230,18 @@ export default function ManualTaskCreator() {
                                     </div>
                                 </div>
 
-                                {/* Concepts */}
-                                <div className="input-group">
-                                    <span className="input-group-text">
-                                        <i className="bi bi-tags"></i>
-                                    </span>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        value={concepts}
-                                        onChange={(e) => setConcepts(e.target.value)}
-                                        placeholder={t("manual.conceptsLabel")}
-                                        required
-                                    />
-                                </div>
-                                {conceptTokens.length > 0 && (
-                                    <div className="mt-2">
-                                        {conceptTokens.map((c, i) => (
-                                            <span
-                                                key={`${c}-${i}`}
-                                                className="badge rounded-pill text-bg-light me-2 mb-1 border"
-                                            >
-                                                {c}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
+                                {/* Concepts — picked from the catalogue, or typed in full.
+                                    At least one is required; the check lives in handleSubmit. */}
+                                <label className="form-label" htmlFor="manualConcepts">
+                                    <i className="bi bi-tags me-1"></i>
+                                    {t("manual.conceptsLabel")}
+                                </label>
+                                <ConceptPicker
+                                    inputId="manualConcepts"
+                                    value={concepts}
+                                    catalogue={conceptCatalogue}
+                                    onChange={setConcepts}
+                                />
                             </div>
                         </div>
 
@@ -357,6 +361,22 @@ export default function ManualTaskCreator() {
                             </div>
                         </div>
 
+                        {/* AP15b: generate distractors right after creation */}
+                        <div className="form-check form-switch mt-3">
+                            <input
+                                className="form-check-input"
+                                type="checkbox"
+                                id="manualDistractorsToggle"
+                                checked={generateDistractors}
+                                disabled={submitting}
+                                onChange={(e) => setGenerateDistractors(e.target.checked)}
+                            />
+                            <label className="form-check-label" htmlFor="manualDistractorsToggle">
+                                {t("manual.generateDistractors")}
+                                <span className="badge text-bg-warning ms-2" style={{ fontSize: "0.65em" }}>Beta</span>
+                            </label>
+                        </div>
+
                         {/* Actions */}
                         <div className="d-flex flex-wrap gap-2 mt-3">
                             <button
@@ -370,7 +390,7 @@ export default function ManualTaskCreator() {
                                             className="spinner-border spinner-border-sm me-2"
                                             role="status"
                                         />
-                                        {t("manual.creating")}
+                                        {generatingDistractors ? t("manual.generatingDistractors") : t("manual.creating")}
                                     </>
                                 ) : (
                                     <>
@@ -382,7 +402,7 @@ export default function ManualTaskCreator() {
                             <button
                                 type="button"
                                 className="btn btn-outline-secondary"
-                                onClick={() => navigate("/")}
+                                onClick={() => navigate(homePath)}
                                 disabled={submitting}
                             >
                                 {t("manual.cancel")}

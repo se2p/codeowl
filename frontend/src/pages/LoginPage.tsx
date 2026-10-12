@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { loginLandingPath } from "../lib/homePath.ts";
 
 export default function LoginPage() {
     const { t } = useTranslation();
@@ -25,16 +26,11 @@ export default function LoginPage() {
                 return;
             }
 
-            // Student-specific redirect based on class membership
-            if (result.role === "STUDENT" && result.classIds && result.classIds.length > 0) {
-                if (result.classIds.length === 1) {
-                    navigate(`/classes/${result.classIds[0]}`);
-                } else {
-                    navigate("/my-classes");
-                }
-            } else {
-                navigate("/");
-            }
+            // Everyone starts on their classes page: it is where the normal
+            // workflow begins for both roles. Students used to be dropped
+            // straight into a class when they had exactly one, which made the
+            // landing page depend on how many classes they happened to be in.
+            navigate(loginLandingPath(result.role));
         } catch (err: any) {
             setError(err.response?.data?.error || t("login.failed"));
         } finally {
@@ -73,6 +69,11 @@ export default function LoginPage() {
                     {loading ? t("login.submitting") : t("login.submit")}
                 </button>
             </form>
+
+            <Link to="/login/fim" className="btn btn-outline-primary w-100 mt-2">
+                <i className="bi bi-mortarboard me-1"></i>
+                {t("login.fimAccount")}
+            </Link>
 
             <div className="text-center mt-3">
                 <Link to="/forgot-password">{t("login.forgotPassword")}</Link>

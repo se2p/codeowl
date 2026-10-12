@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -76,7 +76,7 @@ public class AdminService {
 
     public record AdminUserResponse(
             String userId, String email, String firstName, String lastName,
-            String role, boolean verified, boolean active, String createdAt
+            String role, boolean verified, boolean active, String createdAt, boolean fimAccount
     ) {
         static AdminUserResponse from(UserDTO user) {
             return new AdminUserResponse(
@@ -87,7 +87,8 @@ public class AdminService {
                     user.getRole().name(),
                     user.isVerified(),
                     user.isActive(),
-                    user.getCreatedAt() != null ? user.getCreatedAt().toString() : null
+                    user.getCreatedAt() != null ? user.getCreatedAt().toString() : null,
+                    user.getFimUid() != null
             );
         }
     }
@@ -99,15 +100,20 @@ public class AdminService {
         UserDTO user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthenticationException("Benutzer nicht gefunden."));
 
+        // Users without an email (students before onboarding, FIM-Accounts whose
+        // directory entry has none) arrive here with a blank one; store that as null
+        // rather than "", which would collide with the next such user.
+        String newEmail = email == null || email.isBlank() ? null : email.trim();
+
         // Check email uniqueness if changed
-        if (!user.getEmail().equalsIgnoreCase(email)) {
-            userRepository.findByEmail(email).ifPresent(existing -> {
+        if (newEmail != null && !newEmail.equalsIgnoreCase(user.getEmail())) {
+            userRepository.findByEmail(newEmail).ifPresent(existing -> {
                 if (!existing.getUserId().equals(userId)) {
                     throw new AuthenticationException("Diese Email-Adresse wird bereits verwendet.");
                 }
             });
-            user.setEmail(email);
         }
+        user.setEmail(newEmail);
 
         user.setFirstName(firstName);
         user.setLastName(lastName);
@@ -152,6 +158,11 @@ public class AdminService {
     public void resetPassword(UUID userId) {
         UserDTO user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthenticationException("Benutzer nicht gefunden."));
+
+        if (user.getFimUid() != null) {
+            throw new AuthenticationException(
+                    "Das Passwort eines FIM-Accounts kann nicht in CodeOwl zurückgesetzt werden.");
+        }
 
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             throw new AuthenticationException("Benutzer hat keine Email-Adresse.");

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -27,7 +27,10 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import de.uni_passau.fim.se2.domain.model.WorksheetAvailability;
+
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -37,6 +40,56 @@ import java.util.*;
 public class PostgreClassDao implements ClassRepository {
 
     private final JdbcTemplate jdbc;
+
+    private static final String WORKSHEET_SELECT = """
+            SELECT cw.class_id, w.id as worksheet_id, w.name, w.description,
+                   cw.published, cw.release_at, cw.deadline_at, cw.grace_minutes
+            FROM class_worksheets cw
+            JOIN worksheets w ON w.id = cw.worksheet_id
+            """;
+
+    /** One assignment row, with its availability already resolved. */
+    private static ClassDTO.WorksheetInfo worksheetRow(java.sql.ResultSet rs) throws java.sql.SQLException {
+        Instant releaseAt = toInstant(rs.getTimestamp("release_at"));
+        Instant deadlineAt = toInstant(rs.getTimestamp("deadline_at"));
+        Integer grace = (Integer) rs.getObject("grace_minutes");
+        boolean published = rs.getBoolean("published");
+        return ClassDTO.WorksheetInfo.builder()
+                .worksheetId(rs.getObject("worksheet_id", UUID.class))
+                .name(rs.getString("name"))
+                .description(rs.getString("description"))
+                .published(published)
+                .releaseAt(releaseAt)
+                .deadlineAt(deadlineAt)
+                .graceMinutes(grace)
+                // Resolved here so every caller agrees, and so the
+                // client cannot disagree with the server about now.
+                .availability(WorksheetAvailability.of(published, releaseAt, deadlineAt, grace, Instant.now()))
+                .build();
+    }
+
+    /**
+     * Fills in the worksheet assignments for a list of classes in one query.
+     *
+     * The overview needs deadlines, and loading them class by class would mean a
+     * query per card.
+     */
+    private void attachWorksheets(List<ClassDTO> classes) {
+        if (classes.isEmpty()) return;
+
+        List<UUID> ids = classes.stream().map(ClassDTO::getId).toList();
+        String placeholders = String.join(", ", Collections.nCopies(ids.size(), "?"));
+        Map<UUID, List<ClassDTO.WorksheetInfo>> byClass = new HashMap<>();
+
+        jdbc.query(WORKSHEET_SELECT + " WHERE cw.class_id IN (" + placeholders + ") ORDER BY w.name",
+                rs -> {
+                    byClass.computeIfAbsent(rs.getObject("class_id", UUID.class), k -> new ArrayList<>())
+                            .add(worksheetRow(rs));
+                },
+                ids.toArray());
+
+        classes.forEach(c -> c.setWorksheets(byClass.getOrDefault(c.getId(), List.of())));
+    }
 
     @Override
     public ClassDTO save(ClassDTO classDTO) {
@@ -93,7 +146,7 @@ public class PostgreClassDao implements ClassRepository {
 
         // Load students
         List<ClassDTO.StudentInfo> students = jdbc.query("""
-            SELECT u.user_id, u.first_name, u.last_name, u.email,
+            SELECT u.user_id, u.first_name, u.last_name, u.email, u.fim_uid,
                    at.token_value as invite_token
             FROM class_students cs
             JOIN users u ON u.user_id = cs.student_id
@@ -110,24 +163,16 @@ public class PostgreClassDao implements ClassRepository {
                         .lastName(rs.getString("last_name"))
                         .email(rs.getString("email"))
                         .inviteToken(rs.getString("invite_token"))
+                        .fimUid(rs.getString("fim_uid"))
                         .build(),
                 id
         );
         classDTO.setStudents(students);
 
         // Load worksheets
-        List<ClassDTO.WorksheetInfo> worksheets = jdbc.query("""
-            SELECT w.id as worksheet_id, w.name, w.description
-            FROM class_worksheets cw
-            JOIN worksheets w ON w.id = cw.worksheet_id
-            WHERE cw.class_id = ?
-            ORDER BY w.name
-            """,
-                (rs, rowNum) -> ClassDTO.WorksheetInfo.builder()
-                        .worksheetId(rs.getObject("worksheet_id", UUID.class))
-                        .name(rs.getString("name"))
-                        .description(rs.getString("description"))
-                        .build(),
+        List<ClassDTO.WorksheetInfo> worksheets = jdbc.query(
+                WORKSHEET_SELECT + " WHERE cw.class_id = ? ORDER BY w.name",
+                (rs, rowNum) -> worksheetRow(rs),
                 id
         );
         classDTO.setWorksheets(worksheets);
@@ -165,13 +210,20 @@ public class PostgreClassDao implements ClassRepository {
     @Override
     public List<ClassDTO> findAll() {
         return jdbc.query("""
-            SELECT * FROM classes ORDER BY created_at DESC
+            SELECT c.*,
+                   NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), '') AS owner_name,
+                   u.email AS owner_email
+            FROM classes c
+            LEFT JOIN users u ON u.user_id = c.owner_id
+            ORDER BY c.created_at DESC
             """,
                 (rs, rowNum) -> ClassDTO.builder()
                         .id(rs.getObject("id", UUID.class))
                         .name(rs.getString("name"))
                         .description(rs.getString("description"))
                         .ownerId(rs.getObject("owner_id", UUID.class))
+                        .ownerName(rs.getString("owner_name"))
+                        .ownerEmail(rs.getString("owner_email"))
                         .trackingEnabled(rs.getBoolean("tracking_enabled"))
                         .createdAt(rs.getTimestamp("created_at") != null
                                 ? rs.getTimestamp("created_at").toLocalDateTime() : null)
@@ -253,7 +305,7 @@ public class PostgreClassDao implements ClassRepository {
 
     @Override
     public List<ClassDTO> findByStudentId(UUID studentId) {
-        return jdbc.query("""
+        List<ClassDTO> classes = jdbc.query("""
             SELECT c.* FROM classes c
             JOIN class_students cs ON cs.class_id = c.id
             WHERE cs.student_id = ?
@@ -272,6 +324,9 @@ public class PostgreClassDao implements ClassRepository {
                         .build(),
                 studentId
         );
+        // The overview shows deadlines, so the assignments have to come with it.
+        attachWorksheets(classes);
+        return classes;
     }
 
     // ── Tracking (AP5) ──────────────────────────────────────
@@ -311,5 +366,88 @@ public class PostgreClassDao implements ClassRepository {
                 studentId
         );
         return results.stream().findFirst().orElse(null);
+    }
+
+    /** Null-safe timestamp conversion; a null column means "no constraint". */
+    private static Instant toInstant(Timestamp ts) {
+        return ts != null ? ts.toInstant() : null;
+    }
+
+    /**
+     * Publishes or unpublishes one assignment.
+     *
+     * Two things can release an assignment — the publish flag and a release date
+     * that has arrived — so taking it back out of sight has to neutralise both.
+     * Clearing only the flag would leave a passed release date still releasing
+     * it, and the button would appear to do nothing.
+     */
+    public void setWorksheetPublished(UUID classId, UUID worksheetId, boolean published) {
+        int rows;
+        if (published) {
+            // Stamp the moment of publication into the schedule, the way ending
+            // stamps the deadline, so the editor shows when it went live rather
+            // than an empty field.
+            //
+            // Unless that would put the release after an already-passed deadline,
+            // which the deadline_after_release constraint forbids. In that case
+            // the flag alone publishes it and the schedule is left as the teacher
+            // set it — a worksheet published after its deadline reads as closed,
+            // which is the truth.
+            Timestamp now = Timestamp.from(Instant.now());
+            rows = jdbc.update("""
+                    UPDATE class_worksheets
+                    SET published = true,
+                        release_at = CASE WHEN deadline_at IS NULL OR deadline_at > ?
+                                          THEN ? ELSE release_at END
+                    WHERE class_id = ? AND worksheet_id = ?
+                    """, now, now, classId, worksheetId);
+        } else {
+            rows = jdbc.update("""
+                    UPDATE class_worksheets
+                    SET published = false, release_at = NULL
+                    WHERE class_id = ? AND worksheet_id = ?
+                    """, classId, worksheetId);
+        }
+        if (rows == 0) {
+            throw new DomainValidationException("That worksheet is not assigned to this class.");
+        }
+    }
+
+    /**
+     * Ends an assignment now: the deadline becomes this moment with no grace, so
+     * it reads as closed immediately and the reason is visible in the schedule
+     * rather than hidden in a separate flag.
+     */
+    public void closeWorksheetNow(UUID classId, UUID worksheetId, Instant now) {
+        int rows = jdbc.update("""
+                UPDATE class_worksheets
+                SET deadline_at = ?, grace_minutes = 0,
+                    published = true
+                WHERE class_id = ? AND worksheet_id = ?
+                """, Timestamp.from(now), classId, worksheetId);
+        if (rows == 0) {
+            throw new DomainValidationException("That worksheet is not assigned to this class.");
+        }
+    }
+
+    /**
+     * Sets the schedule for one worksheet in one class. Passing null for a field
+     * clears that constraint.
+     */
+    public void updateWorksheetSchedule(UUID classId, UUID worksheetId,
+                                        Instant releaseAt, Instant deadlineAt, Integer graceMinutes) {
+        int rows = jdbc.update("""
+                UPDATE class_worksheets
+                SET release_at = ?, deadline_at = ?, grace_minutes = ?
+                WHERE class_id = ? AND worksheet_id = ?
+                """,
+                releaseAt != null ? Timestamp.from(releaseAt) : null,
+                deadlineAt != null ? Timestamp.from(deadlineAt) : null,
+                graceMinutes,
+                classId, worksheetId);
+
+        if (rows == 0) {
+            throw new DomainValidationException("That worksheet is not assigned to this class.");
+        }
     }
 }

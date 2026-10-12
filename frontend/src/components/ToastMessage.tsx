@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * AP19 Teil A (A12): Minimal auto-dismissing toast with an optional action button.
@@ -50,6 +51,7 @@ export default function ToastMessage({
     onClose,
     timeoutMs = 6000,
 }: ToastMessageProps) {
+    const { t } = useTranslation();
     const timerRef = useRef<number | null>(null);
 
     // Auto-dismiss after timeout (unless disabled)
@@ -118,7 +120,7 @@ export default function ToastMessage({
                     <button
                         type="button"
                         className={`btn-close ${variant !== "warning" ? "btn-close-white" : ""}`}
-                        aria-label="Close"
+                        aria-label={t("common.close")}
                         onClick={onClose}
                     ></button>
                 </div>

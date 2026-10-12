@@ -5,13 +5,16 @@ import { api } from "../lib/api";
 /**
  * AP19 Teil A A16 + A7: Admin "library curation" dashboard.
  *
- * <p>Three widgets:
+ * <p>Four widgets:
  * <ol>
  *   <li><b>New topics</b> — tags whose first appearance in the system fell inside a configurable
  *       time window.</li>
  *   <li><b>Merge tags</b> — free-form tool to rename a tag across every sequence.</li>
  *   <li><b>Bulk-Retagger</b> — fire-and-forget job that re-runs LLM tagging on all sequences
  *       that are missing semantic tags, with live progress polling.</li>
+ *   <li><b>Bulk concept re-classifier</b> — the concept-facet mirror of the retagger: re-runs
+ *       LLM concept detection so material generated before a concept existed (a teacher's
+ *       free-typed one, or a newly-mapped curriculum concept) can still pick it up.</li>
  * </ol>
  */
 
@@ -42,6 +45,11 @@ interface BulkRetagJob {
     finishedAt: string | null;
     errorMessage: string | null;
 }
+
+/** Snapshot of a bulk concept-reclassify job. Matches {@code BulkConceptReclassifyJobStatus} —
+ *  same shape as {@link BulkRetagJob}, kept as its own type so a job's fields read unambiguously
+ *  as belonging to one feature or the other. */
+type BulkConceptJob = BulkRetagJob;
 
 // ── status → Bootstrap colour ──────────────────────────────────────────
 const STATUS_BADGE: Record<BulkRetagJob["status"], string> = {
@@ -77,6 +85,14 @@ export default function AdminLibraryPage() {
     // Store the polling interval ID in a ref so the cleanup in useEffect always sees the
     // current value without needing it in the dependency array.
     const pollRef = useRef<number | null>(null);
+
+    // ── bulk concept-reclassify state — mirrors bulk-retag state above exactly ─────────
+    const [conceptFilter, setConceptFilter] = useState<"missing-concepts" | "all">("missing-concepts");
+    const [conceptStarting, setConceptStarting] = useState(false);
+    const [conceptError, setConceptError] = useState("");
+    const [activeConceptJob, setActiveConceptJob] = useState<BulkConceptJob | null>(null);
+    const [recentConceptJobs, setRecentConceptJobs] = useState<BulkConceptJob[]>([]);
+    const conceptPollRef = useRef<number | null>(null);
 
     // ─────────────────────────────────────────────────────────────────
     // New-topics
@@ -210,6 +226,66 @@ export default function AdminLibraryPage() {
     };
 
     // ─────────────────────────────────────────────────────────────────
+    // Bulk concept-reclassify — mirrors bulk-retag above exactly, against
+    // /admin/sequences/reclassify-concepts instead of /admin/sequences/retag.
+    // ─────────────────────────────────────────────────────────────────
+
+    const loadRecentConceptJobs = useCallback(async () => {
+        try {
+            const res = await api.get<BulkConceptJob[]>("/admin/sequences/reclassify-concepts");
+            setRecentConceptJobs(res.data);
+        } catch {
+            // Non-fatal — the recent-jobs table is a nice-to-have.
+        }
+    }, []);
+
+    useEffect(() => { loadRecentConceptJobs(); }, [loadRecentConceptJobs]);
+
+    useEffect(() => {
+        if (!activeConceptJob || activeConceptJob.status === "DONE" || activeConceptJob.status === "FAILED") return;
+
+        conceptPollRef.current = window.setInterval(async () => {
+            try {
+                const res = await api.get<BulkConceptJob>(
+                    `/admin/sequences/reclassify-concepts/${activeConceptJob.jobId}`,
+                );
+                setActiveConceptJob(res.data);
+                if (res.data.status === "DONE" || res.data.status === "FAILED") {
+                    window.clearInterval(conceptPollRef.current!);
+                    conceptPollRef.current = null;
+                    loadRecentConceptJobs();
+                }
+            } catch {
+                // Transient network hiccup — keep polling.
+            }
+        }, 2000);
+
+        return () => {
+            if (conceptPollRef.current != null) {
+                window.clearInterval(conceptPollRef.current);
+                conceptPollRef.current = null;
+            }
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeConceptJob?.jobId]);
+
+    const handleStartConceptReclassify = async () => {
+        setConceptStarting(true);
+        setConceptError("");
+        try {
+            const res = await api.post<BulkConceptJob>("/admin/sequences/reclassify-concepts", {
+                filter: conceptFilter,
+            });
+            setActiveConceptJob(res.data);
+        } catch (e) {
+            console.error("concept reclassify start failed", e);
+            setConceptError(t("admin.library.reclassifyConcepts.errorStart"));
+        } finally {
+            setConceptStarting(false);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────
 
@@ -241,6 +317,13 @@ export default function AdminLibraryPage() {
 
     const retagPct = activeJob && activeJob.total > 0
         ? Math.round((activeJob.processed / activeJob.total) * 100)
+        : 0;
+
+    const isActiveConceptJobRunning =
+        activeConceptJob && (activeConceptJob.status === "QUEUED" || activeConceptJob.status === "RUNNING");
+
+    const conceptPct = activeConceptJob && activeConceptJob.total > 0
+        ? Math.round((activeConceptJob.processed / activeConceptJob.total) * 100)
         : 0;
 
     // ─────────────────────────────────────────────────────────────────
@@ -583,6 +666,183 @@ export default function AdminLibraryPage() {
                                             <tr
                                                 key={job.jobId}
                                                 className={activeJob?.jobId === job.jobId ? "table-active" : ""}
+                                            >
+                                                <td>
+                                                    <code className="text-body small">{job.filter}</code>
+                                                </td>
+                                                <td>
+                                                    <span className={`badge ${STATUS_BADGE[job.status]}`}>
+                                                        {job.status}
+                                                    </span>
+                                                </td>
+                                                <td className="text-end small text-muted">
+                                                    {job.processed} / {job.total}
+                                                    {job.failed > 0 && (
+                                                        <span className="text-danger ms-1">
+                                                            ({job.failed} err)
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="text-end small text-muted">
+                                                    {fmtTime(job.startedAt)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── Section 4: bulk concept re-classifier ─── */}
+            <section className="card mt-4">
+                <div className="card-header">
+                    <h2 className="h5 mb-0">
+                        <i className="bi bi-diagram-3 me-2"></i>
+                        {t("admin.library.reclassifyConcepts.title")}
+                    </h2>
+                </div>
+                <div className="card-body">
+                    <p className="small text-muted">{t("admin.library.reclassifyConcepts.subtitle")}</p>
+
+                    {/* Filter + start button */}
+                    <div className="d-flex align-items-center gap-3 flex-wrap">
+                        <div className="flex-grow-1" style={{ minWidth: "200px" }}>
+                            <label className="form-label small text-muted mb-1">
+                                {t("admin.library.reclassifyConcepts.filterLabel")}
+                            </label>
+                            <select
+                                className="form-select w-100"
+                                value={conceptFilter}
+                                onChange={(e) => setConceptFilter(e.target.value as typeof conceptFilter)}
+                                disabled={!!isActiveConceptJobRunning}
+                            >
+                                <option value="missing-concepts">
+                                    {t("admin.library.reclassifyConcepts.filterMissing")}
+                                </option>
+                                <option value="all">
+                                    {t("admin.library.reclassifyConcepts.filterAll")}
+                                </option>
+                            </select>
+                        </div>
+                        <div className="pt-3">
+                            <button
+                                className="btn btn-warning"
+                                onClick={handleStartConceptReclassify}
+                                disabled={conceptStarting || !!isActiveConceptJobRunning}
+                            >
+                                {conceptStarting
+                                    ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>{t("admin.library.reclassifyConcepts.starting")}</>
+                                    : <><i className="bi bi-play-fill me-2"></i>{t("admin.library.reclassifyConcepts.start")}</>
+                                }
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Warning when "all" is selected */}
+                    {conceptFilter === "all" && !isActiveConceptJobRunning && (
+                        <div className="alert alert-warning d-flex align-items-start gap-2 mt-3 mb-0 py-2">
+                            <i className="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+                            <span className="small">{t("admin.library.reclassifyConcepts.warningAll")}</span>
+                        </div>
+                    )}
+
+                    {conceptError && (
+                        <div className="alert alert-danger mt-3 mb-0 py-2">{conceptError}</div>
+                    )}
+
+                    {/* Active job progress */}
+                    {activeConceptJob && (
+                        <div className="mt-4 p-3 border rounded bg-light">
+                            <div className="d-flex align-items-center justify-content-between mb-2">
+                                <span className="fw-semibold small">
+                                    {t("admin.library.reclassifyConcepts.activeJob")}
+                                    <code className="ms-2 text-muted" style={{ fontSize: "0.75em" }}>
+                                        {activeConceptJob.jobId.split("-")[0]}…
+                                    </code>
+                                </span>
+                                <span className={`badge ${STATUS_BADGE[activeConceptJob.status]}`}>
+                                    {activeConceptJob.status}
+                                </span>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="progress mb-2" style={{ height: "1.1rem" }}>
+                                <div
+                                    className={`progress-bar progress-bar-striped ${isActiveConceptJobRunning ? "progress-bar-animated" : ""} ${activeConceptJob.status === "FAILED" ? "bg-danger" : ""}`}
+                                    role="progressbar"
+                                    style={{ width: `${conceptPct}%` }}
+                                    aria-valuenow={conceptPct}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                >
+                                    {conceptPct > 10 && `${conceptPct}%`}
+                                </div>
+                            </div>
+
+                            <div className="d-flex justify-content-between small text-muted">
+                                <span>
+                                    {t("admin.library.reclassifyConcepts.progress", {
+                                        processed: activeConceptJob.processed,
+                                        total: activeConceptJob.total,
+                                    })}
+                                    {activeConceptJob.succeeded > 0 && (
+                                        <span className="text-success ms-2">
+                                            <i className="bi bi-check2 me-1"></i>{activeConceptJob.succeeded}
+                                        </span>
+                                    )}
+                                    {activeConceptJob.failed > 0 && (
+                                        <span className="text-danger ms-2">
+                                            <i className="bi bi-x me-1"></i>{activeConceptJob.failed}
+                                        </span>
+                                    )}
+                                </span>
+                                <span>{activeConceptJob.filter}</span>
+                            </div>
+
+                            {activeConceptJob.errorMessage && (
+                                <div className="alert alert-danger mt-2 mb-0 py-1 small">
+                                    {activeConceptJob.errorMessage}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Recent jobs table */}
+                    <div className="mt-4">
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                            <span className="small fw-semibold text-muted">
+                                {t("admin.library.reclassifyConcepts.recentJobs")}
+                            </span>
+                            <button
+                                className="btn btn-sm btn-outline-secondary py-0"
+                                onClick={loadRecentConceptJobs}
+                                title={t("admin.library.newTopics.refresh") as string}
+                            >
+                                <i className="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+
+                        {recentConceptJobs.length === 0 ? (
+                            <p className="text-muted small mb-0">{t("admin.library.reclassifyConcepts.noRecentJobs")}</p>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table table-sm table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>{t("admin.library.reclassifyConcepts.colFilter")}</th>
+                                            <th>{t("admin.library.reclassifyConcepts.colStatus")}</th>
+                                            <th className="text-end">{t("admin.library.reclassifyConcepts.colProgress")}</th>
+                                            <th className="text-end">{t("admin.library.reclassifyConcepts.colStarted")}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {recentConceptJobs.map((job) => (
+                                            <tr
+                                                key={job.jobId}
+                                                className={activeConceptJob?.jobId === job.jobId ? "table-active" : ""}
                                             >
                                                 <td>
                                                     <code className="text-body small">{job.filter}</code>

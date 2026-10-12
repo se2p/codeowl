@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -25,6 +25,7 @@ import de.uni_passau.fim.se2.api.dto.LibrarySearchResponse.Facets;
 import de.uni_passau.fim.se2.api.dto.LibrarySearchResponse.Ownership;
 import de.uni_passau.fim.se2.domain.entities.SequenceTagDTO;
 import de.uni_passau.fim.se2.domain.interfaces.SequenceTagRepository;
+import de.uni_passau.fim.se2.domain.interfaces.TieredTaskSequenceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -59,8 +60,23 @@ public class SequenceSearchService {
     private static final int MAX_PAGE_SIZE = 100;
     private static final int DEFAULT_PAGE_SIZE = 20;
 
-    /** How many top tags to report in the facet sidebar. */
-    private static final int FACET_TOP_TAGS = 30;
+    /**
+     * Default and per-step size for the tag facet: how many top tags a request returns when the
+     * caller does not ask for more via {@code tagsLimit}, and the amount the sidebar's "Show
+     * more" adds on each click — it re-requests with {@code tagsLimit} raised by exactly this
+     * much, so "50, then 100, then 150…" instead of dumping every tag in one response nobody
+     * asked to see yet.
+     */
+    private static final int FACET_TOP_TAGS_DEFAULT = 50;
+
+    /** Upper bound on {@code tagsLimit}, so a client cannot ask for the whole tag table in one go. */
+    private static final int FACET_TOP_TAGS_MAX = 1000;
+
+    /** Same idea as {@link #FACET_TOP_TAGS_DEFAULT}, for the concept facet's {@code conceptsLimit}. */
+    private static final int FACET_TOP_CONCEPTS_DEFAULT = 50;
+
+    /** Same idea as {@link #FACET_TOP_TAGS_MAX}, for {@code conceptsLimit}. */
+    private static final int FACET_TOP_CONCEPTS_MAX = 1000;
 
     /** Minimum similarity for fuzzy "Meintest du…" tag suggestions. */
     private static final float TRIGRAM_SIMILARITY_THRESHOLD = 0.3f;
@@ -79,10 +95,13 @@ public class SequenceSearchService {
 
     private final JdbcTemplate jdbc;
     private final SequenceTagRepository tagRepo;
+    private final TieredTaskSequenceRepository sequenceRepo;
 
-    public SequenceSearchService(JdbcTemplate jdbc, SequenceTagRepository tagRepo) {
+    public SequenceSearchService(JdbcTemplate jdbc, SequenceTagRepository tagRepo,
+                                  TieredTaskSequenceRepository sequenceRepo) {
         this.jdbc = jdbc;
         this.tagRepo = tagRepo;
+        this.sequenceRepo = sequenceRepo;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -99,6 +118,10 @@ public class SequenceSearchService {
         SearchQuery q = rawQuery == null ? new SearchQuery() : rawQuery.normalized();
         int page = Math.max(0, q.page());
         int size = clamp(q.size() <= 0 ? DEFAULT_PAGE_SIZE : q.size(), 1, MAX_PAGE_SIZE);
+        int tagsLimit = clamp(q.tagsLimit() == null || q.tagsLimit() <= 0
+                ? FACET_TOP_TAGS_DEFAULT : q.tagsLimit(), 1, FACET_TOP_TAGS_MAX);
+        int conceptsLimit = clamp(q.conceptsLimit() == null || q.conceptsLimit() <= 0
+                ? FACET_TOP_CONCEPTS_DEFAULT : q.conceptsLimit(), 1, FACET_TOP_CONCEPTS_MAX);
 
         // Build the shared WHERE clause once. Used by count / page / facet queries so they all see
         // exactly the same filter set.
@@ -108,7 +131,7 @@ public class SequenceSearchService {
         List<LibraryItemDTO> items = total == 0 ? List.of()
                 : fetchPage(q, where, page, size, currentUserId);
 
-        Facets facets = fetchFacets(where, currentUserId);
+        Facets facets = fetchFacets(where, currentUserId, tagsLimit, conceptsLimit);
 
         // Only compute fuzzy suggestions when FTS returned nothing — it's an expensive call.
         List<String> suggestions = (total == 0 && q.q() != null && !q.q().isBlank())
@@ -129,6 +152,27 @@ public class SequenceSearchService {
     private WhereClause buildWhere(SearchQuery q, UUID currentUserId) {
         StringBuilder sb = new StringBuilder(" WHERE 1=1 ");
         List<Object> params = new ArrayList<>();
+
+        // Originals, plus copies that have since been edited. Copying a worksheet duplicates
+        // every sequence in it, and the marketplace turns copying from something a teacher does
+        // occasionally into the main way material spreads — so listing every copy would fill the
+        // library with clones of the very sequences it is meant to help people find.
+        //
+        // But a copy stops being a clone the moment its new owner reworks it. Filtering on
+        // copied_from alone could not tell those apart, because it is written once at copy time
+        // and never cleared: a teacher who copied a worksheet and then rewrote a sequence could
+        // not find their own work in the library, ever. diverged_at is stamped by the first edit
+        // and lets it back in, while an untouched clone stays out — still perfectly usable in
+        // the worksheet it belongs to, just not listed a second time.
+        //
+        // Rows predating either column have both NULL and are treated as originals, which is
+        // right: nothing knew they were copies either.
+        sb.append(" AND (s.copied_from IS NULL OR s.diverged_at IS NOT NULL) ");
+
+        // A sequence its owner deleted is gone from the library but not from the worksheets
+        // that already use it (see V23), so the listing — and its counts and facets, which
+        // share this clause — skips it.
+        sb.append(" AND s.deleted_at IS NULL ");
 
         // Language filter
         if (q.lang() != null && !q.lang().isBlank()) {
@@ -180,6 +224,38 @@ public class SequenceSearchService {
             }
         }
 
+        // Concept filter. Unlike tags (a flat tag_name column) concepts are normalized: the link
+        // table only carries a concept_id, so matching by name means joining tiered_task_sequence
+        // _concepts to concepts on both sides of the EXISTS/NOT EXISTS, everything else mirrors
+        // the tag filter exactly.
+        List<String> concepts = q.concepts();
+        if (concepts != null && !concepts.isEmpty()) {
+            if (q.conceptModeAll()) {
+                sb.append("""
+        AND NOT EXISTS (
+            SELECT 1
+            FROM unnest(?::text[]) t(concept)
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM tiered_task_sequence_concepts tsc
+                JOIN concepts c ON c.id = tsc.concept_id
+                WHERE tsc.sequence_id = s.id
+                  AND c.name = t.concept
+            )
+        )
+    """);
+                params.add(concepts.toArray(new String[0]));
+            } else {
+                // ANY: sequence must have at least one requested concept.
+                sb.append(" AND EXISTS (SELECT 1 FROM tiered_task_sequence_concepts tsc ")
+                  .append("     JOIN concepts c ON c.id = tsc.concept_id ")
+                  .append("     WHERE tsc.sequence_id = s.id AND c.name IN (")
+                  .append(placeholders(concepts.size()))
+                  .append(")) ");
+                params.addAll(concepts);
+            }
+        }
+
         // A14: Full-text search matches a query against EITHER the sequence-level vector
         // (task_description + semantic_summary, so domain concepts like "recursion" land
         // even when the task statements don't use the word) OR a task's vector (statement +
@@ -187,17 +263,16 @@ public class SequenceSearchService {
         // `-exclude`, and `or` — while still being safe on malformed input (it silently
         // tolerates unbalanced quotes etc).
         //
-        // NOTE: websearch_to_tsquery('simple', ?) is used directly (no CTE) so this
-        // WHERE fragment can be embedded in fetchTotal, fetchFacets, and fetchPage alike
-        // without each caller having to inject a surrounding CTE. Each usage is a bind
-        // parameter — never string-interpolated.
+        // NOTE: TSQUERY_EXPR (no CTE) so this WHERE fragment can be embedded in fetchTotal,
+        // fetchFacets, and fetchPage alike without each caller having to inject a surrounding
+        // CTE. Each usage is a bind parameter — never string-interpolated.
         if (q.q() != null && !q.q().isBlank()) {
-            sb.append(" AND ( s.search_vector @@ websearch_to_tsquery('simple', ?) ")
+            sb.append(" AND ( s.search_vector @@ ").append(TSQUERY_EXPR).append(' ')
               .append("       OR EXISTS (SELECT 1 FROM tasks t ")
               .append("                    WHERE t.sequence_id = s.id ")
-              .append("                      AND t.search_vector @@ websearch_to_tsquery('simple', ?))) ");
-            params.add(q.q().trim());
-            params.add(q.q().trim());
+              .append("                      AND t.search_vector @@ ").append(TSQUERY_EXPR).append(")) ");
+            addTsqueryParams(params, q.q().trim());
+            addTsqueryParams(params, q.q().trim());
         }
 
         return new WhereClause(sb.toString(), params, q, currentUserId);
@@ -228,6 +303,7 @@ public class SequenceSearchService {
                 SELECT s.id                   AS id,
                        s.programming_language AS programming_language,
                        s.task_description     AS task_description,
+                       s.title              AS title,
                        s.semantic_summary     AS semantic_summary,
                        s.created_at           AS created_at,
                        s.owner_id             AS owner_id,
@@ -267,7 +343,8 @@ public class SequenceSearchService {
                                    LIMIT 1),
                                 ''
                             ),
-                            websearch_to_tsquery('simple', ?),
+                    """).append(HIGHLIGHT_TSQUERY_EXPR).append("""
+                            ,
                             ?
                          ) AS highlight
                     """);
@@ -286,8 +363,8 @@ public class SequenceSearchService {
         String sort = q.sort();
         if ("relevance".equals(sort) && hasQuery) {
             sql.append(" ORDER BY ( ")
-               .append("     COALESCE(ts_rank_cd(s.search_vector, websearch_to_tsquery('simple', ?)), 0) ")
-               .append("     + COALESCE((SELECT MAX(ts_rank_cd(t.search_vector, websearch_to_tsquery('simple', ?))) ")
+               .append("     COALESCE(ts_rank_cd(s.search_vector, ").append(TSQUERY_EXPR).append("), 0) ")
+               .append("     + COALESCE((SELECT MAX(ts_rank_cd(t.search_vector, ").append(TSQUERY_EXPR).append(")) ")
                .append("                   FROM tasks t WHERE t.sequence_id = s.id), 0) ")
                .append(" ) DESC NULLS LAST, s.created_at DESC, s.id ");
         } else if ("popularity".equals(sort)) {
@@ -299,23 +376,27 @@ public class SequenceSearchService {
 
         sql.append(" LIMIT ? OFFSET ? ");
 
-        // Parameter assembly must match placeholder order in the generated SQL:
-        //   1. (optional) currentUserId       — alreadyInMyWorksheet EXISTS subquery in SELECT
-        //   2. (optional) q.q()               — websearch_to_tsquery in ts_headline
-        //   3. (optional) headlineOptions()   — ts_headline option string (StartSel/StopSel)
-        //   4. w.params                       — shared WHERE params (includes 2× q.q() for FTS)
-        //   5. (optional) q.q(), q.q()        — websearch_to_tsquery in ORDER BY relevance (×2)
-        //   6. size, offset                   — LIMIT / OFFSET
+        // Parameter assembly must match placeholder order in the generated SQL. Each TSQUERY_EXPR
+        // occupies TWO placeholders (the normalized query, then the same again for the
+        // prefix-match branch — see addTsqueryParams); HIGHLIGHT_TSQUERY_EXPR occupies SIX (three
+        // un-normalized spellings of the query, each with its own prefix-match sibling — see
+        // addHighlightTsqueryParams):
+        //   1. (optional) currentUserId          — alreadyInMyWorksheet EXISTS subquery in SELECT
+        //   2. (optional) HIGHLIGHT_TSQUERY_EXPR × 6 — ts_headline in SELECT
+        //   3. (optional) headlineOptions()       — ts_headline option string (StartSel/StopSel)
+        //   4. w.params                           — shared WHERE params (includes 2× TSQUERY_EXPR for FTS)
+        //   5. (optional) TSQUERY_EXPR × 2, × 2   — ORDER BY relevance (sequence vector, task vector)
+        //   6. size, offset                       — LIMIT / OFFSET
         List<Object> params = new ArrayList<>();
         if (hasUser) params.add(currentUserId);
         if (hasQuery) {
-            params.add(q.q().trim());     // ts_headline query param
-            params.add(headlineOptions()); // ts_headline options param
+            addHighlightTsqueryParams(params, q.q().trim()); // ts_headline query param
+            params.add(headlineOptions());                   // ts_headline options param
         }
         params.addAll(w.params);
         if ("relevance".equals(sort) && hasQuery) {
-            params.add(q.q().trim()); // ORDER BY ts_rank_cd — sequence vector
-            params.add(q.q().trim()); // ORDER BY ts_rank_cd — task vector
+            addTsqueryParams(params, q.q().trim()); // ORDER BY ts_rank_cd — sequence vector
+            addTsqueryParams(params, q.q().trim()); // ORDER BY ts_rank_cd — task vector
         }
         params.add(size);
         params.add(page * size);
@@ -326,6 +407,7 @@ public class SequenceSearchService {
             if (rs.wasNull() || tier <= 0) tier = 3;
             return new LibraryItemDTO(
                     seqId,
+                    rs.getString("title"),
                     rs.getString("programming_language"),
                     rs.getString("task_description"),
                     rs.getString("semantic_summary"),
@@ -333,22 +415,25 @@ public class SequenceSearchService {
                     rs.getObject("owner_id", UUID.class),
                     tier,
                     List.of(), // filled in below with a single batch query
+                    List.of(), // concepts — same treatment
                     rs.getLong("usage_count"),
                     rs.getString("highlight"),
                     rs.getBoolean("already_in_my_worksheet")
             );
         }, params.toArray());
 
-        // Attach tags in one shot via the existing batch lookup.
+        // Attach tags and concepts in one shot each via their batch lookups.
         if (rows.isEmpty()) return rows;
         List<UUID> ids = rows.stream().map(LibraryItemDTO::sequenceId).toList();
         Map<UUID, List<SequenceTagDTO>> tagMap = tagRepo.findBySequenceIds(ids);
+        Map<UUID, List<String>> conceptMap = sequenceRepo.findConceptNamesBySequenceIds(ids);
         List<LibraryItemDTO> enriched = new ArrayList<>(rows.size());
         for (LibraryItemDTO r : rows) {
             enriched.add(new LibraryItemDTO(
-                    r.sequenceId(), r.programmingLanguage(), r.taskDescription(), r.semanticSummary(),
+                    r.sequenceId(), r.title(), r.programmingLanguage(), r.taskDescription(), r.semanticSummary(),
                     r.createdAt(), r.ownerId(), r.tierCount(),
                     tagMap.getOrDefault(r.sequenceId(), List.of()),
+                    conceptMap.getOrDefault(r.sequenceId(), List.of()),
                     r.usageCount(), r.highlight(),
                     r.alreadyInMyWorksheet()));
         }
@@ -405,6 +490,7 @@ public class SequenceSearchService {
                 SELECT s.id                   AS id,
                        s.programming_language AS programming_language,
                        s.task_description     AS task_description,
+                       s.title              AS title,
                        s.semantic_summary     AS semantic_summary,
                        s.created_at           AS created_at,
                        s.owner_id             AS owner_id,
@@ -429,6 +515,7 @@ public class SequenceSearchService {
                   FROM tag_overlaps ov
                   JOIN tiered_task_sequences s ON s.id = ov.sequence_id
               LEFT JOIN tiered_task_sequences src ON src.id = ?
+                 WHERE s.deleted_at IS NULL
               ORDER BY ov.weighted_overlap DESC,
                        ov.overlap_count    DESC,
                        (s.programming_language = src.programming_language) DESC,
@@ -450,6 +537,7 @@ public class SequenceSearchService {
             if (rs.wasNull() || tier <= 0) tier = 3;
             return new LibraryItemDTO(
                     seqId,
+                    rs.getString("title"),
                     rs.getString("programming_language"),
                     rs.getString("task_description"),
                     rs.getString("semantic_summary"),
@@ -457,6 +545,7 @@ public class SequenceSearchService {
                     rs.getObject("owner_id", UUID.class),
                     tier,
                     List.of(),
+                    List.of(), // concepts — "similar sequences" doesn't show them either
                     rs.getLong("usage_count"),
                     null, // no highlight for similar-sequences — there's no query
                     rs.getBoolean("already_in_my_worksheet")
@@ -469,9 +558,10 @@ public class SequenceSearchService {
         List<LibraryItemDTO> enriched = new ArrayList<>(rows.size());
         for (LibraryItemDTO r : rows) {
             enriched.add(new LibraryItemDTO(
-                    r.sequenceId(), r.programmingLanguage(), r.taskDescription(), r.semanticSummary(),
+                    r.sequenceId(), r.title(), r.programmingLanguage(), r.taskDescription(), r.semanticSummary(),
                     r.createdAt(), r.ownerId(), r.tierCount(),
                     tagMap.getOrDefault(r.sequenceId(), List.of()),
+                    r.concepts(),
                     r.usageCount(), r.highlight(), r.alreadyInMyWorksheet()));
         }
         return enriched;
@@ -481,11 +571,39 @@ public class SequenceSearchService {
     // Facets
     // ─────────────────────────────────────────────────────────────────────
 
-    private Facets fetchFacets(WhereClause base, UUID currentUserId) {
-        List<FacetBucket> languages = fetchLanguageFacets(base.withoutLanguage());
-        List<FacetBucket> topTags   = fetchTagFacets(base.withoutTags());
-        Ownership ownership         = fetchOwnershipFacets(base, currentUserId);
-        return new Facets(languages, topTags, ownership);
+    private Facets fetchFacets(WhereClause base, UUID currentUserId, int tagsLimit, int conceptsLimit) {
+        WhereClause tagWhere     = base.withoutTags();
+        WhereClause conceptWhere = base.withoutConcepts();
+        List<FacetBucket> languages    = fetchLanguageFacets(base.withoutLanguage());
+        List<FacetBucket> topTags      = fetchTagFacets(tagWhere, tagsLimit);
+        long totalTagCount             = fetchTotalTagCount(tagWhere);
+        List<FacetBucket> topConcepts  = fetchConceptFacets(conceptWhere, conceptsLimit);
+        long totalConceptCount         = fetchTotalConceptCount(conceptWhere);
+        Ownership ownership            = fetchOwnershipFacets(base, currentUserId);
+        List<FacetBucket> tierCounts   = fetchTierCountFacets(base.withoutTierCount());
+        return new Facets(languages, topTags, totalTagCount, topConcepts, totalConceptCount, ownership,
+                tierCounts);
+    }
+
+    /**
+     * Which tier counts exist under the other filters, so the sidebar offers exactly those
+     * instead of a hard-coded 3/5. Computed without the tier filter itself, like the language
+     * facet, so picking one tier count still shows the others to switch to. Rows with a missing
+     * tier_count cannot be matched by the {@code s.tier_count = ?} filter, so they are not
+     * offered as an option.
+     */
+    private List<FacetBucket> fetchTierCountFacets(WhereClause w) {
+        String sql = """
+                SELECT s.tier_count AS name, COUNT(*) AS cnt
+                FROM tiered_task_sequences s
+                """ + w.sql + """
+                  AND s.tier_count > 0
+                GROUP BY s.tier_count
+                ORDER BY s.tier_count
+                """;
+        return jdbc.query(sql,
+                (rs, n) -> new FacetBucket(String.valueOf(rs.getInt("name")), rs.getLong("cnt")),
+                w.params.toArray());
     }
 
     private List<FacetBucket> fetchLanguageFacets(WhereClause w) {
@@ -500,7 +618,7 @@ public class SequenceSearchService {
                 w.params.toArray());
     }
 
-    private List<FacetBucket> fetchTagFacets(WhereClause w) {
+    private List<FacetBucket> fetchTagFacets(WhereClause w, int limit) {
         String sql = """
                 SELECT tg.tag_name AS name, COUNT(*) AS cnt
                 FROM sequence_tags tg
@@ -511,9 +629,53 @@ public class SequenceSearchService {
                 LIMIT ?
                 """;
         List<Object> params = new ArrayList<>(w.params);
-        params.add(FACET_TOP_TAGS);
+        params.add(limit);
         return jdbc.query(sql, (rs, n) -> new FacetBucket(rs.getString("name"), rs.getLong("cnt")),
                 params.toArray());
+    }
+
+    /**
+     * How many distinct tags exist under the current filters — unbounded, unlike {@link
+     * #fetchTagFacets}, so the sidebar can tell whether "Show more" still has anything to reveal.
+     */
+    private long fetchTotalTagCount(WhereClause w) {
+        String sql = """
+                SELECT COUNT(DISTINCT tg.tag_name) AS cnt
+                FROM sequence_tags tg
+                JOIN tiered_task_sequences s ON s.id = tg.sequence_id
+                """ + w.sql;
+        Long count = jdbc.queryForObject(sql, Long.class, w.params.toArray());
+        return count == null ? 0L : count;
+    }
+
+    /** Concept-facet mirror of {@link #fetchTagFacets} — joins through the concepts catalogue. */
+    private List<FacetBucket> fetchConceptFacets(WhereClause w, int limit) {
+        String sql = """
+                SELECT c.name AS name, COUNT(*) AS cnt
+                FROM tiered_task_sequence_concepts tsc
+                JOIN concepts c ON c.id = tsc.concept_id
+                JOIN tiered_task_sequences s ON s.id = tsc.sequence_id
+                """ + w.sql + """
+                GROUP BY c.name
+                ORDER BY cnt DESC, c.name
+                LIMIT ?
+                """;
+        List<Object> params = new ArrayList<>(w.params);
+        params.add(limit);
+        return jdbc.query(sql, (rs, n) -> new FacetBucket(rs.getString("name"), rs.getLong("cnt")),
+                params.toArray());
+    }
+
+    /** Concept-facet mirror of {@link #fetchTotalTagCount}. */
+    private long fetchTotalConceptCount(WhereClause w) {
+        String sql = """
+                SELECT COUNT(DISTINCT c.name) AS cnt
+                FROM tiered_task_sequence_concepts tsc
+                JOIN concepts c ON c.id = tsc.concept_id
+                JOIN tiered_task_sequences s ON s.id = tsc.sequence_id
+                """ + w.sql;
+        Long count = jdbc.queryForObject(sql, Long.class, w.params.toArray());
+        return count == null ? 0L : count;
     }
 
     private Ownership fetchOwnershipFacets(WhereClause w, UUID currentUserId) {
@@ -610,6 +772,54 @@ public class SequenceSearchService {
         return v.isEmpty() ? null : v;
     }
 
+    /**
+     * Normalize a concept name to the same lowercase form {@code 14_migration_lowercase_concept
+     * _names.sql} put in the {@code concepts} table. Unlike {@link #normalizeTag}, concept names
+     * are not slugs — "return values" is a real, space-containing concept name, and slugifying it
+     * to "return-values" would stop it from ever matching.
+     */
+    static String normalizeConcept(String raw) {
+        if (raw == null) return null;
+        String v = raw.trim().toLowerCase(Locale.ROOT);
+        return v.isEmpty() ? null : v;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Umlaut-tolerant free-text search
+    // ─────────────────────────────────────────────────────────────────────
+
+    // Moved to FullTextSearch when the worksheet marketplace gained a second search box: the
+    // two must agree about umlauts and half-typed words, and two copies would not have. These
+    // delegates stay because this service's own test pins them down here, where the behaviour
+    // was worked out and where its rationale is documented.
+    //
+    // Umlaut tolerance itself now lives in the database (search_normalize, applied to both the
+    // generated search_vector columns and the query — see FullTextSearch#TSQUERY_EXPR and
+    // db/migration/V19__unaccent_search.sql) rather than in Java, so it works both directions
+    // — "Fakultät" finds "Fakultaet" and "fakultaet" finds "Fakultät" alike.
+    //
+    // ts_headline cannot use that same normalized query: it re-tokenizes the raw column text on
+    // every call rather than reading search_vector, so a query folded towards "fakultaet" never
+    // matches a raw "Fakultät" lexeme, in either direction. HIGHLIGHT_TSQUERY_EXPR is the
+    // separate, un-normalized tsquery that fixes highlighting without touching which rows match
+    // — see its Javadoc in FullTextSearch.
+
+    /** @see FullTextSearch#TSQUERY_EXPR */
+    static final String TSQUERY_EXPR = FullTextSearch.TSQUERY_EXPR;
+
+    /** @see FullTextSearch#addTsqueryParams */
+    static void addTsqueryParams(List<Object> params, String query) {
+        FullTextSearch.addTsqueryParams(params, query);
+    }
+
+    /** @see FullTextSearch#HIGHLIGHT_TSQUERY_EXPR */
+    static final String HIGHLIGHT_TSQUERY_EXPR = FullTextSearch.HIGHLIGHT_TSQUERY_EXPR;
+
+    /** @see FullTextSearch#addHighlightTsqueryParams */
+    static void addHighlightTsqueryParams(List<Object> params, String query) {
+        FullTextSearch.addHighlightTsqueryParams(params, query);
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     // Nested types
     // ─────────────────────────────────────────────────────────────────────
@@ -622,12 +832,16 @@ public class SequenceSearchService {
         private String q;
         private List<String> tags;
         private String tagMode = "any"; // "any" | "all"
+        private List<String> concepts;
+        private String conceptMode = "any"; // "any" | "all"
         private String lang;
         private String owner = "any";   // "any" | "me"
         private Integer tierCount;
         private String sort = "recent"; // "recent" | "relevance" | "popularity"
         private int page = 0;
         private int size = DEFAULT_PAGE_SIZE;
+        private Integer tagsLimit;
+        private Integer conceptsLimit;
 
         public SearchQuery() {}
 
@@ -635,38 +849,52 @@ public class SequenceSearchService {
         public String q() { return q; }
         public List<String> tags() { return tags; }
         public boolean tagModeAll() { return "all".equalsIgnoreCase(tagMode); }
+        public List<String> concepts() { return concepts; }
+        public boolean conceptModeAll() { return "all".equalsIgnoreCase(conceptMode); }
         public String lang() { return lang; }
         public String owner() { return owner; }
         public Integer tierCount() { return tierCount; }
         public String sort() { return sort; }
         public int page() { return page; }
         public int size() { return size; }
+        public Integer tagsLimit() { return tagsLimit; }
+        public Integer conceptsLimit() { return conceptsLimit; }
 
         // Fluent setters
-        public SearchQuery q(String v)           { this.q = v; return this; }
-        public SearchQuery tags(List<String> v)  { this.tags = v; return this; }
-        public SearchQuery tagMode(String v)     { this.tagMode = v; return this; }
-        public SearchQuery lang(String v)        { this.lang = v; return this; }
-        public SearchQuery owner(String v)       { this.owner = v; return this; }
-        public SearchQuery tierCount(Integer v)  { this.tierCount = v; return this; }
-        public SearchQuery sort(String v)        { this.sort = v; return this; }
-        public SearchQuery page(int v)           { this.page = v; return this; }
-        public SearchQuery size(int v)           { this.size = v; return this; }
+        public SearchQuery q(String v)             { this.q = v; return this; }
+        public SearchQuery tags(List<String> v)    { this.tags = v; return this; }
+        public SearchQuery tagMode(String v)       { this.tagMode = v; return this; }
+        public SearchQuery concepts(List<String> v) { this.concepts = v; return this; }
+        public SearchQuery conceptMode(String v)   { this.conceptMode = v; return this; }
+        public SearchQuery lang(String v)          { this.lang = v; return this; }
+        public SearchQuery owner(String v)         { this.owner = v; return this; }
+        public SearchQuery tierCount(Integer v)    { this.tierCount = v; return this; }
+        public SearchQuery sort(String v)          { this.sort = v; return this; }
+        public SearchQuery page(int v)             { this.page = v; return this; }
+        public SearchQuery size(int v)             { this.size = v; return this; }
+        public SearchQuery tagsLimit(Integer v)    { this.tagsLimit = v; return this; }
+        public SearchQuery conceptsLimit(Integer v) { this.conceptsLimit = v; return this; }
 
-        /** Returns a cleaned-up copy: tag slugs normalized, sort/tagMode/owner coerced to the whitelist. */
+        /**
+         * Returns a cleaned-up copy: tag slugs and concept names normalized, sort/tagMode
+         * /conceptMode/owner coerced to the whitelist.
+         */
         SearchQuery normalized() {
             SearchQuery n = new SearchQuery()
                     .q(q == null ? null : q.trim())
                     .lang(lang == null ? null : lang.trim())
                     .owner("me".equalsIgnoreCase(owner) ? "me" : "any")
                     .tagMode("all".equalsIgnoreCase(tagMode) ? "all" : "any")
+                    .conceptMode("all".equalsIgnoreCase(conceptMode) ? "all" : "any")
                     .sort(switch (sort == null ? "recent" : sort.toLowerCase(Locale.ROOT)) {
                         case "relevance", "popularity" -> sort.toLowerCase(Locale.ROOT);
                         default -> "recent";
                     })
                     .tierCount(tierCount)
                     .page(page)
-                    .size(size);
+                    .size(size)
+                    .tagsLimit(tagsLimit)
+                    .conceptsLimit(conceptsLimit);
 
             if (tags != null && !tags.isEmpty()) {
                 Set<String> clean = new LinkedHashSet<>();
@@ -676,14 +904,23 @@ public class SequenceSearchService {
                 }
                 n.tags(clean.isEmpty() ? null : new ArrayList<>(clean));
             }
+
+            if (concepts != null && !concepts.isEmpty()) {
+                Set<String> clean = new LinkedHashSet<>();
+                for (String c : concepts) {
+                    String name = normalizeConcept(c);
+                    if (name != null) clean.add(name);
+                }
+                n.concepts(clean.isEmpty() ? null : new ArrayList<>(clean));
+            }
             return n;
         }
     }
 
     /**
      * A prepared WHERE fragment + its parameter list. Also carries the original {@link SearchQuery}
-     * so {@link #withoutLanguage()} / {@link #withoutTags()} can rebuild a version of the fragment
-     * minus one specific filter (for facet queries).
+     * so {@link #withoutLanguage()} / {@link #withoutTags()} / {@link #withoutConcepts()} can
+     * rebuild a version of the fragment minus one specific filter (for facet queries).
      */
     private final class WhereClause {
         final String sql;
@@ -698,21 +935,26 @@ public class SequenceSearchService {
             this.currentUserId = currentUserId;
         }
 
-        WhereClause rebuild(boolean includeLang, boolean includeTags) {
+        WhereClause rebuild(boolean includeLang, boolean includeTags, boolean includeConcepts,
+                            boolean includeTierCount) {
             SearchQuery copy = new SearchQuery()
                     .q(query.q())
                     .lang(includeLang ? query.lang() : null)
                     .owner(query.owner())
                     .tagMode(query.tagMode)
-                    .tierCount(query.tierCount())
+                    .conceptMode(query.conceptMode)
+                    .tierCount(includeTierCount ? query.tierCount() : null)
                     .sort(query.sort())
                     .page(query.page())
                     .size(query.size());
             copy.tags(includeTags ? query.tags() : null);
+            copy.concepts(includeConcepts ? query.concepts() : null);
             return buildWhere(copy, currentUserId);
         }
 
-        WhereClause withoutLanguage() { return rebuild(false, true); }
-        WhereClause withoutTags()     { return rebuild(true, false); }
+        WhereClause withoutLanguage()  { return rebuild(false, true, true, true); }
+        WhereClause withoutTags()      { return rebuild(true, false, true, true); }
+        WhereClause withoutConcepts()  { return rebuild(true, true, false, true); }
+        WhereClause withoutTierCount() { return rebuild(true, true, true, false); }
     }
 }

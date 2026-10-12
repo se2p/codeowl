@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -82,16 +82,26 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/tasks/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/worksheets/**").permitAll()
 
-                        // Task generation: permitAll at HTTP level, student-check in controller
-                        .requestMatchers(HttpMethod.POST, "/api/tasks/generate").permitAll()
+                        // The concept catalogue is a list of concept names, nothing more, and
+                        // pages an anonymous visitor can open fetch it on mount. Without this
+                        // it fell through to anyRequest().authenticated() and answered 403,
+                        // which the client read as an expired session.
+                        .requestMatchers(HttpMethod.GET, "/api/concepts").permitAll()
+
+                        // Task generation: teachers and admins only
+                        .requestMatchers(HttpMethod.POST, "/api/tasks/generate").hasAnyRole("TEACHER", "ADMIN")
 
                         // Feedback logging: open (anonymous feedback allowed)
                         .requestMatchers(HttpMethod.POST, "/api/tasks/*/feedback-log").permitAll()
 
-                        // Learning events (AP10): POST is public, export is admin, rest is authenticated
+                        // Learning events (AP10): POST is public, reading is staff-only.
+                        // Reads return the arrangements students built, move by move, so being
+                        // logged in is not enough -- the controller additionally requires the
+                        // caller to own the sequence. This matcher is the coarse floor in front
+                        // of that check, not a substitute for it.
                         .requestMatchers(HttpMethod.POST, "/api/events").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events/export").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/events/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/events/**").hasAnyRole("TEACHER", "ADMIN")
 
                         // Hints (AP13): public (anonymous students allowed)
                         .requestMatchers(HttpMethod.POST, "/api/hints/**").permitAll()

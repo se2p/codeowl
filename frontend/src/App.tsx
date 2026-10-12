@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
+import { useHomePath } from "./hooks/useHomePath.ts";
 import HomePage from "./pages/HomePage.tsx";
 import SolvePage from "./pages/SolvePage.tsx";
 import SequencePage from "./pages/SequencePage.tsx";
@@ -9,6 +12,7 @@ import { useMatch } from "react-router-dom";
 import WorksheetPage from "./pages/WorksheetPage.tsx";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
+import FimLoginPage from "./pages/FimLoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -16,16 +20,22 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import StudentOnboardingPage from "./pages/StudentOnboardingPage";
 import ProfilePage from "./pages/ProfilePage";
 import ClassesPage from "./pages/ClassesPage";
+import WorksheetsPage from "./pages/WorksheetsPage";
 import ClassDetailPage from "./pages/ClassDetailPage";
+import StudentProgressPage from "./pages/StudentProgressPage";
 import StudentClassesPage from "./pages/StudentClassesPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminLibraryPage from "./pages/AdminLibraryPage";
 import AdminDatabasePage from "./pages/AdminDatabasePage";
+import AdminResearchPage from "./pages/AdminResearchPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ManualTaskCreator from "./pages/ManualTaskCreator";
 import CurriculumPage from "./pages/CurriculumPage";
 import LibraryPage from "./pages/LibraryPage";
+import MarketplacePage from "./pages/MarketplacePage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import ContactPage from "./pages/ContactPage";
+import ImprintPage from "./pages/ImprintPage";
 
 
 function FloatingHelpButton() {
@@ -37,15 +47,18 @@ function FloatingHelpButton() {
     const matchSolve      = useMatch("/solve/:taskId");
     const matchSeq        = useMatch("/sequence/:id");
     const matchLibrary    = useMatch("/library");
+    const matchMarketplace = useMatch("/library/worksheets");
     const matchCurriculum = useMatch("/curriculum");
     const matchClasses    = useMatch("/classes");
     const matchClassDetail = useMatch("/classes/:id");
     const matchWorksheet  = useMatch("/worksheets/:sheetId");
+    const matchWorksheetsList = useMatch("/worksheets");
     const matchManual     = useMatch("/manual-create");
     const matchMyClasses  = useMatch("/my-classes");
     const matchAdminUsers = useMatch("/admin/users");
     const matchAdminLib   = useMatch("/admin/library");
     const matchAdminDb    = useMatch("/admin/database");
+    const matchAdminRes   = useMatch("/admin/research");
     const matchProfile    = useMatch("/profile");
     const matchHelpRoot   = useMatch("/help");
     const matchHelpAny    = useMatch("/help/*");
@@ -55,13 +68,14 @@ function FloatingHelpButton() {
     const context =
         matchSolve                        ? "solve"         :
         matchSeq                          ? "sequence"      :
+        matchMarketplace                  ? "marketplace"   :
         matchLibrary                      ? "library"       :
         matchCurriculum                   ? "curriculum"    :
         (matchClasses || matchClassDetail)? "classes"       :
-        matchWorksheet                    ? "worksheets"    :
+        (matchWorksheet || matchWorksheetsList) ? "worksheets" :
         matchManual                       ? "manual-create" :
         matchMyClasses                    ? "my-classes"    :
-        (matchAdminUsers || matchAdminLib || matchAdminDb)? "admin" :
+        (matchAdminUsers || matchAdminLib || matchAdminDb || matchAdminRes)? "admin" :
         matchProfile                      ? "auth"          :
         "home";
 
@@ -107,7 +121,7 @@ function LanguageToggle() {
             onClick={toggle}
             title={current === "de" ? "Switch to English" : "Zu Deutsch wechseln"}
         >
-            {current === "de" ? "EN" : "DE"}
+            {current.toUpperCase()}
         </button>
     );
 }
@@ -116,10 +130,11 @@ function Navbar() {
     const { user, logout, isLoggedIn, isStudent, isAdmin } = useAuth();
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const homePath = useHomePath();
 
     return (
         <nav className="navbar navbar-expand-sm navbar-light bg-white border-bottom px-3 py-2">
-            <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
+            <Link className="navbar-brand d-flex align-items-center gap-2" to={homePath}>
                 <img
                     src={`${import.meta.env.BASE_URL}codeowllogo.png`}
                     alt="CodeOwl"
@@ -147,6 +162,10 @@ function Navbar() {
                                     <i className="bi bi-database me-1"></i>
                                     {t("nav.databaseTools")}
                                 </Link>
+                                <Link to="/admin/research" className="btn btn-sm btn-outline-danger">
+                                    <i className="bi bi-clipboard-data me-1"></i>
+                                    {t("nav.researchLogs")}
+                                </Link>
                             </>
                         )}
                         {!isStudent && (
@@ -154,6 +173,14 @@ function Navbar() {
                                 <Link to="/library" className="btn btn-sm btn-outline-primary">
                                     <i className="bi bi-collection me-1"></i>
                                     {t("nav.library")}
+                                </Link>
+                                <Link to="/library/worksheets" className="btn btn-sm btn-outline-primary">
+                                    <i className="bi bi-shop me-1"></i>
+                                    {t("nav.marketplace")}
+                                </Link>
+                                <Link to="/" className="btn btn-sm btn-outline-success">
+                                    <i className="bi bi-magic me-1"></i>
+                                    {t("nav.automaticCreator")}
                                 </Link>
                                 <Link to="/manual-create" className="btn btn-sm btn-outline-success">
                                     <i className="bi bi-pencil-square me-1"></i>
@@ -166,6 +193,10 @@ function Navbar() {
                                 <Link to="/classes" className="btn btn-sm btn-outline-secondary">
                                     <i className="bi bi-people me-1"></i>
                                     {t("nav.classes")}
+                                </Link>
+                                <Link to="/worksheets" className="btn btn-sm btn-outline-secondary">
+                                    <i className="bi bi-journal-text me-1"></i>
+                                    {t("nav.worksheets")}
                                 </Link>
                             </>
                         )}
@@ -213,31 +244,73 @@ function AppFooter() {
                     style={{ filter: "drop-shadow(0 0 3px rgba(0,0,0,0.1))" }}
                 />
                 <span className="text-muted d-none d-sm-inline">|</span>
-                <div className="dropdown">
-                    <button
-                        className="btn btn-sm btn-outline-secondary dropdown-toggle"
-                        type="button"
-                        id="surveyDropdown"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                    >
-                        {t("nav.feedback")}
-                    </button>
-                    <ul className="dropdown-menu" aria-labelledby="surveyDropdown">
-                        <li>
-                            <a className="dropdown-item" href="https://forms.gle/ZdRYMc8uphyuT6Bu5" target="_blank" rel="noopener noreferrer">
-                                {t("nav.teacherSurvey")}
-                            </a>
-                        </li>
-                        <li>
-                            <a className="dropdown-item" href="https://forms.gle/5tJYYqiswLUm6fW86" target="_blank" rel="noopener noreferrer">
-                                {t("nav.studentSurvey")}
-                            </a>
-                        </li>
-                    </ul>
+                <div className="d-flex align-items-center gap-3">
+                    <a href="https://github.com/se2p/codeowl" target="_blank" rel="noopener noreferrer" className="link-secondary">
+                        GitHub
+                    </a>
+                    <Link to="/contact" className="link-secondary">
+                        {t("nav.contact")}
+                    </Link>
+                    <Link to="/imprint" className="link-secondary">
+                        {t("nav.imprint")}
+                    </Link>
                 </div>
             </div>
         </footer>
+    );
+}
+
+/**
+ * Catches render errors from the routed pages.
+ *
+ * Sits inside the router rather than around it, so a crashing page leaves the
+ * navbar and footer intact and the user can navigate away. Keying the reset on
+ * the pathname clears the error on navigation — otherwise the boundary would
+ * keep showing the fallback after the route had already changed.
+ */
+function RouteErrorBoundary({ children }: { children: ReactNode }) {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { t } = useTranslation();
+    const homePath = useHomePath();
+
+    return (
+        <ErrorBoundary
+            resetKey={location.pathname}
+            fallback={(error, reset) => (
+                <div className="container py-5" style={{ maxWidth: 720 }}>
+                    <div className="alert alert-danger">
+                        <h4 className="alert-heading">⚠️ {t("common.crashTitle")}</h4>
+                        <p>{t("common.crashBody")}</p>
+                        <details className="mb-3">
+                            <summary style={{ cursor: "pointer" }}>{t("common.crashDetails")}</summary>
+                            <pre
+                                className="mt-2 mb-0"
+                                style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem" }}
+                            >
+                                {error.message}
+                            </pre>
+                        </details>
+                        <div className="d-flex gap-2 flex-wrap">
+                            <button className="btn btn-primary" onClick={reset}>
+                                {t("common.crashRetry")}
+                            </button>
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={() => {
+                                    reset();
+                                    navigate(homePath);
+                                }}
+                            >
+                                {t("common.home")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        >
+            {children}
+        </ErrorBoundary>
     );
 }
 
@@ -249,42 +322,52 @@ export default function App() {
                     <Navbar />
 
                     <main className="flex-fill">
-                        <Routes>
-                            {/* Public routes */}
-                            <Route path="/" element={<HomePage />} />
-                            <Route path="/sequence/:id" element={<SequencePage />} />
-                            <Route path="/solve/:taskId" element={<SolvePage />} />
-                            <Route path="/worksheets/:sheetId" element={<WorksheetPage />} />
-                            <Route path="/help" element={<HelpPage />} />
-                            <Route path="/help/:context" element={<HelpPage />} />
+                        <RouteErrorBoundary>
+                            <Routes>
+                                {/* Public routes */}
+                                <Route path="/sequence/:id" element={<SequencePage />} />
+                                <Route path="/solve/:taskId" element={<SolvePage />} />
+                                <Route path="/worksheets/:sheetId" element={<WorksheetPage />} />
+                                <Route path="/help" element={<HelpPage />} />
+                                <Route path="/help/:context" element={<HelpPage />} />
+                                <Route path="/contact" element={<ContactPage />} />
+                                <Route path="/imprint" element={<ImprintPage />} />
 
-                            {/* Temp-password change (accessible while logged in) */}
-                            <Route path="/change-password" element={<ChangePasswordPage />} />
+                                {/* Temp-password change (accessible while logged in) */}
+                                <Route path="/change-password" element={<ChangePasswordPage />} />
 
-                            {/* Auth routes */}
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route path="/register" element={<RegisterPage />} />
-                            <Route path="/verify-email" element={<VerifyEmailPage />} />
-                            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                            <Route path="/reset-password" element={<ResetPasswordPage />} />
-                            <Route path="/student-onboarding" element={<StudentOnboardingPage />} />
+                                {/* Auth routes */}
+                                <Route path="/login" element={<LoginPage />} />
+                                <Route path="/login/fim" element={<FimLoginPage />} />
+                                <Route path="/register" element={<RegisterPage />} />
+                                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                                <Route path="/student-onboarding" element={<StudentOnboardingPage />} />
 
-                            {/* Protected routes */}
-                            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-                            <Route path="/classes" element={<ProtectedRoute><ClassesPage /></ProtectedRoute>} />
-                            <Route path="/classes/:id" element={<ProtectedRoute><ClassDetailPage /></ProtectedRoute>} />
-                            <Route path="/my-classes" element={<ProtectedRoute><StudentClassesPage /></ProtectedRoute>} />
+                                {/* Protected routes */}
+                                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                                <Route path="/classes" element={<ProtectedRoute><ClassesPage /></ProtectedRoute>} />
+                                <Route path="/classes/:id" element={<ProtectedRoute><ClassDetailPage /></ProtectedRoute>} />
+                                <Route path="/classes/:id/students/:studentId/progress" element={<ProtectedRoute><StudentProgressPage /></ProtectedRoute>} />
+                                <Route path="/worksheets" element={<ProtectedRoute><WorksheetsPage /></ProtectedRoute>} />
+                                <Route path="/my-classes" element={<ProtectedRoute><StudentClassesPage /></ProtectedRoute>} />
 
-                            {/* Admin routes */}
-                            <Route path="/admin/users" element={<ProtectedRoute requiredRole="ADMIN"><AdminUsersPage /></ProtectedRoute>} />
-                            <Route path="/admin/library" element={<ProtectedRoute requiredRole="ADMIN"><AdminLibraryPage /></ProtectedRoute>} />
-                            <Route path="/admin/database" element={<ProtectedRoute requiredRole="ADMIN"><AdminDatabasePage /></ProtectedRoute>} />
+                                {/* Admin routes */}
+                                <Route path="/admin/users" element={<ProtectedRoute requiredRole="ADMIN"><AdminUsersPage /></ProtectedRoute>} />
+                                <Route path="/admin/library" element={<ProtectedRoute requiredRole="ADMIN"><AdminLibraryPage /></ProtectedRoute>} />
+                                <Route path="/admin/database" element={<ProtectedRoute requiredRole="ADMIN"><AdminDatabasePage /></ProtectedRoute>} />
+                                <Route path="/admin/research" element={<ProtectedRoute requiredRole="ADMIN"><AdminResearchPage /></ProtectedRoute>} />
 
-                            {/* Teacher tools */}
-                            <Route path="/manual-create" element={<ProtectedRoute><ManualTaskCreator /></ProtectedRoute>} />
-                            <Route path="/curriculum" element={<ProtectedRoute><CurriculumPage /></ProtectedRoute>} />
-                            <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
-                        </Routes>
+                                {/* Teacher tools. The generator is the start page, so anonymous
+                                    visitors landing on / are redirected to the login page. */}
+                                <Route path="/" element={<ProtectedRoute staffOnly><HomePage /></ProtectedRoute>} />
+                                <Route path="/manual-create" element={<ProtectedRoute><ManualTaskCreator /></ProtectedRoute>} />
+                                <Route path="/curriculum" element={<ProtectedRoute><CurriculumPage /></ProtectedRoute>} />
+                                <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+                                <Route path="/library/worksheets" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
+                            </Routes>
+                        </RouteErrorBoundary>
                     </main>
 
                     {/* Universal floating help button */}

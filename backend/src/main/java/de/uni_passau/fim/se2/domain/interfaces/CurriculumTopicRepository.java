@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -20,7 +20,9 @@ package de.uni_passau.fim.se2.domain.interfaces;
 
 import de.uni_passau.fim.se2.domain.entities.CurriculumTopicDTO;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -69,4 +71,14 @@ public interface CurriculumTopicRepository {
     List<CurriculumTopicDTO> findTopLevel();
 
     List<CurriculumTopicDTO> findByParentId(UUID parentId);
+
+    /**
+     * How many sequences match each topic's mapped concepts (any of them), keyed by topic id.
+     * Mirrors the "concepts" match the Curriculum page's "View sequences" button filters the
+     * Library by, so the count badge and the button agree on what counts as a match. A topic
+     * with zero matches is simply absent from the returned map.
+     *
+     * @param topicIds the topics to count for; an empty collection short-circuits to an empty map
+     */
+    Map<UUID, Integer> countSequencesByTopicIds(Collection<UUID> topicIds);
 }

@@ -4,9 +4,19 @@ Your task is to identify the programming language used in the given code snippet
 
 Always respond strictly in JSON format using this structure:
 {
-  "language": "<name of the language>"
+  "language": "<python, java, or other>"
 }
 
-Only return the language name, for example: "Python", "Java", "C++", "JavaScript", "Ruby", etc.
+Answer with exactly one of these three values, lowercase:
 
-Do not explain your reasoning. Do not include any additional text, comments, or formatting outside the JSON object.
+- "python" if the snippet is Python
+- "java" if the snippet is Java
+- "other" for any other language, or if the snippet is too short or ambiguous to tell
+
+Do not answer with any other language name. CodeOwl can only build task sequences for
+Python and Java, so "other" is the correct and useful answer for everything else — it is
+not a failure, and guessing "python" or "java" for a snippet that is neither is worse
+than saying "other".
+
+Do not explain your reasoning. Do not include any additional text, comments, or formatting
+outside the JSON object.

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019-2026 CodeOwl contributors
+# Copyright (C) 2026 CodeOwl contributors
 #
 # This file is part of CodeOwl.
 #

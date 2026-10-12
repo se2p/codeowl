@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -25,6 +25,7 @@ import de.uni_passau.fim.se2.infrastructure.ai.openai.*;
 import de.uni_passau.fim.se2.domain.entities.GenerationConstraints;
 import de.uni_passau.fim.se2.domain.entities.TieredTaskSequenceDTO;
 import de.uni_passau.fim.se2.domain.exceptions.GenerationException;
+import de.uni_passau.fim.se2.domain.exceptions.UnsupportedLanguageException;
 import de.uni_passau.fim.se2.domain.strategy.TaskGenerationStrategy;
 import de.uni_passau.fim.se2.infrastructure.ai.openai.OpenAiClient;
 import org.slf4j.*;
@@ -233,6 +234,13 @@ public class TaskGeneratorService {
             } catch (IOException e) {
                 ioEx = e;
                 logger.warn("IO failure on attempt {}: {}", attempt, e.getMessage());
+            } catch (UnsupportedLanguageException e) {
+                // Not worth a second attempt: the snippet's language does not change between
+                // tries, so retrying spends two more LLM calls to fail identically. Rethrown
+                // straight away so the teacher gets the real reason instead of the generic
+                // "failed after N attempts" this loop ends with.
+                logger.warn("Unsupported language on attempt {}: {}", attempt, e.getMessage());
+                throw e;
             } catch (GenerationException e) {
                 logger.warn("Enrichment failed on attempt {}: {}", attempt, e.getMessage());
                 lastGenEx = e;
@@ -242,6 +250,10 @@ public class TaskGeneratorService {
         // Failed after retries → throw meaningful exception
         if (validationEx != null) throw validationEx;
         if (ioEx != null) throw ioEx;
+        // lastGenEx was collected and then dropped on the floor here, so a generation failure
+        // surfaced as the bare IllegalStateException below and reached the client as a generic
+        // 500 -- GlobalExceptionHandler has a GenerationException handler that never saw one.
+        if (lastGenEx != null) throw lastGenEx;
 
         throw new IllegalStateException("Task generation failed after " + maxAttempts + " attempts");
     }

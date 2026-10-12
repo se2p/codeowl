@@ -11,6 +11,8 @@ interface AdminUser {
     verified: boolean;
     active: boolean;
     createdAt: string | null;
+    /** FIM-Account users have their password reset at the FIM, not here. */
+    fimAccount?: boolean;
 }
 
 interface PageResponse {
@@ -282,9 +284,11 @@ export default function AdminUsersPage() {
                                                     >
                                                         <i className="bi bi-shield"></i>
                                                     </button>
-                                                    <button className="btn btn-outline-secondary" title={t("admin.resetPassword")} onClick={() => handleResetPassword(u)}>
-                                                        <i className="bi bi-key"></i>
-                                                    </button>
+                                                    {!u.fimAccount && (
+                                                        <button className="btn btn-outline-secondary" title={t("admin.resetPassword")} onClick={() => handleResetPassword(u)}>
+                                                            <i className="bi bi-key"></i>
+                                                        </button>
+                                                    )}
                                                     <button className="btn btn-outline-danger" title={t("admin.deleteUser")} onClick={() => setDeleteUser(u)}>
                                                         <i className="bi bi-trash"></i>
                                                     </button>

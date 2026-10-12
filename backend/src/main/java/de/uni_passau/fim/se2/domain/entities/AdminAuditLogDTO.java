@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -32,7 +32,7 @@ import java.util.UUID;
 public class AdminAuditLogDTO {
     private Long id;
     private UUID adminId;
-    private String action;        // "FULL_BACKUP" | "RESEARCH_EXPORT"
+    private String action;        // see Action below
     private String ipAddress;
     private String userAgent;
     private Long bytesSent;       // nullable
@@ -45,6 +45,10 @@ public class AdminAuditLogDTO {
     public static final class Action {
         public static final String FULL_BACKUP     = "FULL_BACKUP";
         public static final String RESEARCH_EXPORT = "RESEARCH_EXPORT";
+        /** One dataset, as filtered on the research page. */
+        public static final String RESEARCH_EXPORT_CSV   = "RESEARCH_EXPORT_CSV";
+        /** The four datasets for a single class, bundled. */
+        public static final String RESEARCH_EXPORT_CLASS = "RESEARCH_EXPORT_CLASS";
         private Action() {}
     }
 }

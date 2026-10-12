@@ -21,6 +21,18 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lombok.version>1.18.44</lombok.version>
+        <!-- Overrides Spring Boot 3.3.0's managed 1.19.8. Note this does NOT by itself
+             fix the Docker API mismatch: docker-java still defaults to API 1.32, and
+             Docker Engine 29 (MinAPIVersion 1.40) answers that with a 400. Testcontainers
+             reads the 400 as "no valid Docker environment", and because the database
+             tests are @Testcontainers(disabledWithoutDocker = true) they then SKIP while
+             the build still reports SUCCESS. The Surefire systemPropertyVariables block
+             below is what actually keeps them running. See src/main/resources/db/README.md. -->
+        <testcontainers.version>1.20.6</testcontainers.version>
+        <!-- Docker API version the test JVM asks docker-java to speak. Needs to be >= the
+             daemon's MinAPIVersion (1.40 on Docker Engine 29) and <= its ApiVersion.
+             1.44 ships with Docker 25 and later. -->
+        <docker.api.version>1.44</docker.api.version>
     </properties>
 
     <dependencies>
@@ -62,6 +74,18 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
 
+        <!--
+            Flyway: automated schema migrations.
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -78,6 +102,34 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-inline</artifactId>
             <version>5.2.0</version>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Testcontainers: starts a real Postgres for the search tests.
+
+            The search services are the one place where the behaviour lives in the SQL rather
+            than in Java - full-text vectors, tsquery, ts_headline, GIN indexes - so a mock can
+            only confirm that we wrote the string we wrote. These tests run Flyway against a
+            fresh container to get the real schema, then run the real queries against it, and
+            throw the database away afterwards.
+
+            Version comes from the Spring Boot parent's dependency management.
+
+            These tests need a running Docker daemon and are skipped without one, so a
+            developer without Docker still gets a green `mvn test` - and so does CI, where the
+            shared runner is unprivileged and cannot host a daemon at all. Skipping is a
+            concession: a search test that does not run proves nothing, and this one found a
+            genuinely broken query the first time it ran. Run the suite locally with Docker up
+            before changing the search or the Flyway migrations; see the CI follow-up issue.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -129,6 +181,16 @@
             <version>1.78.1</version>
         </dependency>
 
+        <!-- Auth: FIM-Account login via LDAP bind -->
+        <dependency>
+            <groupId>org.springframework.ldap</groupId>
+            <artifactId>spring-ldap-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-ldap</artifactId>
+        </dependency>
+
         <!-- Auth: Email -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -157,7 +219,7 @@
                 <version>5.0.0</version>
                 <configuration>
                     <properties>
-                        <year>2019-2026</year>
+                        <year>2026</year>
                     </properties>
                     <licenseSets>
                         <licenseSet>
@@ -192,6 +254,17 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+                <configuration>
+                    <!-- Without this the Testcontainers-backed database tests SKIP and the
+                         build still passes, which is the worst of both worlds: see the
+                         testcontainers.version comment above. systemPropertyVariables
+                         rather than argLine, so it does not clobber an argLine supplied on
+                         the command line or by a coverage agent. Override with
+                         -Ddocker.api.version=... on a daemon that predates API 1.44. -->
+                    <systemPropertyVariables>
+                        <api.version>${docker.api.version}</api.version>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>

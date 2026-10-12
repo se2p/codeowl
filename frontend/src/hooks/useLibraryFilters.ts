@@ -28,6 +28,8 @@ export interface LibraryFiltersState {
     owner: LibraryOwner;
     tags: string[];
     tagMode: LibraryTagMode;
+    concepts: string[];
+    conceptMode: LibraryTagMode;
     tierCount: number | null;
     sort: LibrarySort;
     page: number;
@@ -38,6 +40,7 @@ export interface LibraryFiltersApi extends LibraryFiltersState {
     setLang(v: string): void;
     setOwner(v: LibraryOwner): void;
     setTagMode(v: LibraryTagMode): void;
+    setConceptMode(v: LibraryTagMode): void;
     setTierCount(v: number | null): void;
     setSort(v: LibrarySort): void;
     setPage(v: number): void;
@@ -51,6 +54,15 @@ export interface LibraryFiltersApi extends LibraryFiltersState {
     /** Remove a tag (no-op if not present); resets page to 0. */
     removeTag(tag: string): void;
 
+    /** Toggle a concept on/off, preserving all other filters; resets page to 0. */
+    toggleConcept(concept: string): void;
+
+    /** Add a concept unconditionally (dedup-safe); resets page to 0. */
+    addConcept(concept: string): void;
+
+    /** Remove a concept (no-op if not present); resets page to 0. */
+    removeConcept(concept: string): void;
+
     /** Clear every filter in a single router transition. */
     reset(): void;
 
@@ -61,6 +73,7 @@ export interface LibraryFiltersApi extends LibraryFiltersState {
 const DEFAULT_SORT: LibrarySort = "recent";
 const DEFAULT_OWNER: LibraryOwner = "any";
 const DEFAULT_TAG_MODE: LibraryTagMode = "any";
+const DEFAULT_CONCEPT_MODE: LibraryTagMode = "any";
 
 export function useLibraryFilters(): LibraryFiltersApi {
     const [params, setParams] = useSearchParams();
@@ -87,7 +100,14 @@ export function useLibraryFilters(): LibraryFiltersApi {
             .map((s) => s.trim())
             .filter(Boolean);
 
-        return { q, lang, owner, tags, tagMode, tierCount, sort, page };
+        const conceptMode = (params.get("conceptMode") === "all" ? "all" : "any") as LibraryTagMode;
+        const conceptsCsv = params.get("concepts") ?? "";
+        const concepts = conceptsCsv
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+        return { q, lang, owner, tags, tagMode, concepts, conceptMode, tierCount, sort, page };
     }, [params]);
 
     // Derived: "is this URL still in its default shape?"
@@ -97,6 +117,8 @@ export function useLibraryFilters(): LibraryFiltersApi {
         state.owner !== DEFAULT_OWNER ||
         state.tagMode !== DEFAULT_TAG_MODE ||
         state.tags.length > 0 ||
+        state.conceptMode !== DEFAULT_CONCEPT_MODE ||
+        state.concepts.length > 0 ||
         state.tierCount !== null ||
         state.sort !== DEFAULT_SORT ||
         state.page !== 0;
@@ -120,6 +142,8 @@ export function useLibraryFilters(): LibraryFiltersApi {
                     write(out, "tagMode", merged.tagMode, DEFAULT_TAG_MODE);
                     write(out, "sort", merged.sort, DEFAULT_SORT);
                     write(out, "tags", merged.tags.join(","), "");
+                    write(out, "conceptMode", merged.conceptMode, DEFAULT_CONCEPT_MODE);
+                    write(out, "concepts", merged.concepts.join(","), "");
                     write(
                         out,
                         "tierCount",
@@ -142,6 +166,7 @@ export function useLibraryFilters(): LibraryFiltersApi {
         setLang: (v) => mutate({ lang: v }),
         setOwner: (v) => mutate({ owner: v }),
         setTagMode: (v) => mutate({ tagMode: v }),
+        setConceptMode: (v) => mutate({ conceptMode: v }),
         setTierCount: (v) => mutate({ tierCount: v }),
         setSort: (v) => mutate({ sort: v }),
         setPage: (v) => mutate({ page: v }, /* resetPage */ false),
@@ -165,6 +190,27 @@ export function useLibraryFilters(): LibraryFiltersApi {
             const t = tag.trim().toLowerCase();
             if (!state.tags.includes(t)) return;
             mutate({ tags: state.tags.filter((x) => x !== t) });
+        },
+
+        toggleConcept: (concept) => {
+            const c = concept.trim().toLowerCase();
+            if (!c) return;
+            const next = state.concepts.includes(c)
+                ? state.concepts.filter((x) => x !== c)
+                : [...state.concepts, c];
+            mutate({ concepts: next });
+        },
+
+        addConcept: (concept) => {
+            const c = concept.trim().toLowerCase();
+            if (!c || state.concepts.includes(c)) return;
+            mutate({ concepts: [...state.concepts, c] });
+        },
+
+        removeConcept: (concept) => {
+            const c = concept.trim().toLowerCase();
+            if (!state.concepts.includes(c)) return;
+            mutate({ concepts: state.concepts.filter((x) => x !== c) });
         },
 
         reset: () => {

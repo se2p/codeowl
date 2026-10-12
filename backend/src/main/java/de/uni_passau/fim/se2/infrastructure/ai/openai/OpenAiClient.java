@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -28,6 +28,8 @@ import de.uni_passau.fim.se2.domain.entities.GenerationConstraints;
 import de.uni_passau.fim.se2.domain.entities.OpenAiModel;
 import de.uni_passau.fim.se2.domain.entities.SolveContract;
 import de.uni_passau.fim.se2.domain.model.ConceptCatalog;
+import de.uni_passau.fim.se2.domain.exceptions.UnsupportedLanguageException;
+import de.uni_passau.fim.se2.domain.model.SupportedLanguage;
 import de.uni_passau.fim.se2.infrastructure.ai.*;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
@@ -607,7 +609,27 @@ public class OpenAiClient extends AbstractAiClient {
         JsonNode parsed = parseResponse(response);
         JsonNode taskNode = validateAndGetField(parsed, "language");
         validateTextField(taskNode, "language");
-        return taskNode.asText();
+        String detected = taskNode.asText();
+
+        // The schema already limits the answer, but the value is about to be written to a
+        // free-text column and read back by the hint system, so it is resolved rather than
+        // trusted. Failing here names the real problem; storing it would surface days later
+        // as hints that are quietly worse.
+        return SupportedLanguage.fromString(detected)
+                .map(SupportedLanguage::canonicalName)
+                .orElseThrow(() -> {
+                    logger.warn("Language detection returned unusable language: '{}'", detected);
+                    // UnsupportedLanguageException rather than IOException on purpose: an
+                    // IOException here falls through to the catch-all handler and reaches the
+                    // teacher as "unexpected error, please try again", which is both wrong and
+                    // unactionable -- the same snippet fails the same way every time.
+                    return new UnsupportedLanguageException(
+                            SupportedLanguage.UNSUPPORTED.equals(detected)
+                                    ? "The code snippet is neither Python nor Java; CodeOwl can "
+                                      + "only generate task sequences for languages it can analyse."
+                                    : "Language detection returned '" + detected + "', which is "
+                                      + "not a supported language");
+                });
     }
 
 

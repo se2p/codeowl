@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -36,11 +36,27 @@ public record LibrarySearchResponse(
         Facets facets,
         List<String> suggestions
 ) {
-    /** Facet counts for the filter sidebar. All lists are sorted by descending count. */
+    /**
+     * Facet counts for the filter sidebar. All lists are sorted by descending count.
+     *
+     * @param topTags           the top {@code tagsLimit} tags (see the search endpoint's {@code
+     *                          tagsLimit} parameter) — possibly fewer than exist in total
+     * @param totalTagCount     how many distinct tags exist under the current filters, regardless
+     *                          of how many {@code topTags} actually carries — what the sidebar's
+     *                          "Show more" needs to know whether there is anything left to reveal
+     * @param topConcepts       the concept-facet mirror of {@code topTags}, bounded by {@code
+     *                          conceptsLimit}
+     * @param totalConceptCount the concept-facet mirror of {@code totalTagCount}
+     */
     public record Facets(
             List<FacetBucket> languages,
             List<FacetBucket> topTags,
-            Ownership ownership
+            long totalTagCount,
+            List<FacetBucket> topConcepts,
+            long totalConceptCount,
+            Ownership ownership,
+            /** Tier counts present under the other filters, ascending; name is the count as text. */
+            List<FacetBucket> tierCounts
     ) {}
 
     /** A single facet entry: value → count. */

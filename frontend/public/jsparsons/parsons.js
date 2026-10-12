@@ -727,7 +727,11 @@
         if (code_line.code == model_line.code && code_line.indent !== model_line.indent) {
           code_line.markIncorrectIndent();
           if(this.parson.options.programmingLang === "python" || this.parson.options.programmingLang === "py") {
-            errors.push("Indentation error in Python code");
+            // Routed through translations like every other grader message, so the
+            // app can localise it (see SolvePage's widget.translations overrides).
+            errors.push(this.parson.translations && typeof this.parson.translations.indent_python === "function"
+              ? this.parson.translations.indent_python()
+              : "Indentation error in Python code");
           }
         }
 

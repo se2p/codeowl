@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -21,6 +21,8 @@ package de.uni_passau.fim.se2.domain.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.uni_passau.fim.se2.domain.entities.ConceptDTO;
+import de.uni_passau.fim.se2.domain.interfaces.ConceptRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -33,14 +35,31 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Singleton component that loads the concept catalog and alias mapping at startup.
- * Provides lookup, validation, and prompt-formatting methods for concept detection.
+ * Singleton component that loads the concept catalog and alias mapping at startup, then extends
+ * it live with concepts introduced after the fact — a teacher's free-typed concept in {@code
+ * ConceptPicker}, or a curriculum topic mapped to a name nobody had used before.
+ *
+ * <p>Concept detection ({@link #getCatalogForPrompt}/{@link #normalize}, both called from {@code
+ * OpenAiClient.generateConcepts}) used to be closed against only the {@code concept-catalog.json}
+ * file: a concept a teacher typed by hand got saved to the {@code concepts} table just fine, but
+ * the LLM could never be offered it or have it survive the post-response validation, because
+ * nothing here ever looked at that table. A concept invented once stayed invisible to every
+ * generation after it, including the teacher's own next one.
+ *
+ * <p>{@link #loadConceptsBeyondCatalog()} closes that gap: every row in {@code concepts} that
+ * is not one of the file's slugs is folded in wherever a slug would be looked up, queried fresh
+ * on each call rather than cached at startup — a concept typed five minutes ago has to be
+ * classifiable immediately, and detection is already a multi-second LLM round-trip, so one more
+ * small query is not the bottleneck. Such a concept carries no language scope (the {@code
+ * concepts} table records none), so it is offered for every language rather than silently
+ * excluded from all of them.
  */
 @Slf4j
 @Component
 public class ConceptCatalog {
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final ConceptRepository conceptRepo;
 
     /** slug → CatalogEntry */
     private Map<String, CatalogEntry> bySlug = Map.of();
@@ -48,9 +67,14 @@ public class ConceptCatalog {
     /** lowercase alias → slug */
     private Map<String, String> aliasToSlug = Map.of();
 
-    /** All valid slugs (unmodifiable) */
+    /** All valid slugs from the static file (unmodifiable) — see {@link #getAllValidSlugs()} for
+     *  the live set that also includes concepts added after startup. */
     @Getter
     private Set<String> validSlugs = Set.of();
+
+    public ConceptCatalog(ConceptRepository conceptRepo) {
+        this.conceptRepo = conceptRepo;
+    }
 
     @PostConstruct
     void init() {
@@ -98,19 +122,28 @@ public class ConceptCatalog {
 
     // ── Public API ────────────────────────────────────────
 
-    /** Returns true if the given string is a valid catalog slug. */
+    /** Returns true if the given string is a valid catalog slug — from the file or added since. */
     public boolean isValidSlug(String slug) {
-        return slug != null && bySlug.containsKey(slug.toLowerCase(Locale.ROOT).trim());
+        if (slug == null) return false;
+        String key = slug.toLowerCase(Locale.ROOT).trim();
+        return bySlug.containsKey(key) || loadConceptsBeyondCatalog().containsKey(key);
     }
 
-    /** Tries to resolve a free-text string to a catalog slug via alias mapping. */
+    /**
+     * Tries to resolve a free-text string to a catalog slug: a direct slug match, a known alias,
+     * or a concept name added to the {@code concepts} table after the file was written.
+     */
     public Optional<String> resolveAlias(String input) {
         if (input == null) return Optional.empty();
         String key = input.toLowerCase(Locale.ROOT).trim();
         // Direct slug match first
         if (bySlug.containsKey(key)) return Optional.of(key);
         // Alias lookup
-        return Optional.ofNullable(aliasToSlug.get(key));
+        String alias = aliasToSlug.get(key);
+        if (alias != null) return Optional.of(alias);
+        // A concept nobody had used when the file was written, but that exists now.
+        if (loadConceptsBeyondCatalog().containsKey(key)) return Optional.of(key);
+        return Optional.empty();
     }
 
     /**
@@ -122,33 +155,72 @@ public class ConceptCatalog {
     }
 
     /**
-     * Returns the catalog entries filtered for a given programming language,
-     * formatted as a prompt-friendly string.
-     * Format per line: "slug — displayNameEn: description"
+     * Returns the catalog entries filtered for a given programming language, formatted as a
+     * prompt-friendly string, plus every concept added to the {@code concepts} table beyond the
+     * file — those carry no language of their own, so they are appended for every language
+     * rather than excluded from all of them.
+     * Format per line: "slug — displayNameEn: description".
      */
     public String getCatalogForPrompt(String language) {
         String lang = language == null ? "" : language.toLowerCase(Locale.ROOT).trim();
-        return bySlug.values().stream()
+        String fromFile = bySlug.values().stream()
                 .filter(e -> e.languages != null && e.languages.stream()
                         .anyMatch(l -> l.equalsIgnoreCase(lang)))
                 .map(e -> "%s — %s: %s".formatted(e.slug, e.displayNameEn, e.description))
                 .collect(Collectors.joining("\n"));
+
+        String addedSince = loadConceptsBeyondCatalog().values().stream()
+                .map(c -> "%s — %s".formatted(c.getName(),
+                        c.getDescription() != null && !c.getDescription().isBlank()
+                                ? c.getDescription() : c.getName()))
+                .collect(Collectors.joining("\n"));
+
+        if (addedSince.isBlank()) return fromFile;
+        if (fromFile.isBlank()) return addedSince;
+        return fromFile + "\n" + addedSince;
     }
 
     /**
-     * Returns the set of valid slugs for a specific programming language.
+     * Returns the set of valid slugs for a specific programming language, plus every concept
+     * added beyond the file (which, carrying no language, counts for all of them).
      */
     public Set<String> getValidSlugsForLanguage(String language) {
         String lang = language == null ? "" : language.toLowerCase(Locale.ROOT).trim();
-        return bySlug.values().stream()
+        Set<String> fromFile = bySlug.values().stream()
                 .filter(e -> e.languages != null && e.languages.stream()
                         .anyMatch(l -> l.equalsIgnoreCase(lang)))
                 .map(e -> e.slug)
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        fromFile.addAll(loadConceptsBeyondCatalog().keySet());
+        return Collections.unmodifiableSet(fromFile);
+    }
+
+    /** Every valid slug regardless of language: the file's, plus every concept added since. */
+    public Set<String> getAllValidSlugs() {
+        Set<String> all = new LinkedHashSet<>(validSlugs);
+        all.addAll(loadConceptsBeyondCatalog().keySet());
+        return Collections.unmodifiableSet(all);
     }
 
     public Optional<CatalogEntry> getEntry(String slug) {
         return Optional.ofNullable(bySlug.get(slug));
+    }
+
+    /**
+     * Rows in {@code concepts} that are not one of the static file's slugs, keyed by their
+     * normalized name — a teacher's free-typed concept, or a curriculum topic mapped to a name
+     * nobody had used before. Queried fresh rather than cached: see the class doc for why.
+     */
+    private Map<String, ConceptDTO> loadConceptsBeyondCatalog() {
+        Map<String, ConceptDTO> extra = new LinkedHashMap<>();
+        for (ConceptDTO concept : conceptRepo.loadAll()) {
+            String key = concept.getName() == null ? null
+                    : concept.getName().toLowerCase(Locale.ROOT).trim();
+            if (key != null && !key.isEmpty() && !bySlug.containsKey(key)) {
+                extra.put(key, concept);
+            }
+        }
+        return extra;
     }
 
     // ── Inner record ──────────────────────────────────────

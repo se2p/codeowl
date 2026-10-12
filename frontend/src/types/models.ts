@@ -54,6 +54,8 @@ export type Task = {
     /** Parsons solution lines. May contain inline `$$blank:…$$` gap markers (AP30). */
     solution: string;
     tierLevel: number;
+    /** Name the sequence owner gave the task; null/absent means the numbered default. See taskName(). */
+    title?: string | null;
     cyclomaticComplexity: number;
     sequenceId?: string;
     programmingLanguage: string;
@@ -81,6 +83,8 @@ export type GenerationConstraints = {
 
 export type TieredTaskSequence = {
     id: string;
+    /** The name the owner gave the sequence; null shows the default heading. */
+    title?: string | null;
     programmingLanguage: string;
     concepts: string[];
     tasks: Task[];
@@ -106,6 +110,22 @@ export interface CurriculumTopic {
     learningArea: string | null;
     parentId: string | null;
     sortOrder: number;
+    // English translations (backend/src/main/resources/db/migration/V11__curriculum_i18n.sql).
+    // German is the source language; these are null for a topic added without
+    // a translation, so read them through src/lib/curriculumLabels.ts.
+    nameEn: string | null;
+    descriptionEn: string | null;
+    trackEn: string | null;
+    // "SCHOOL" (Jahrgangsstufe) or "UNIVERSITY" (module), from
+    // backend/src/main/resources/db/migration/V12__curriculum_education_level.sql.
+    // Read it through src/lib/curriculumFilter.ts, which treats anything else as SCHOOL.
+    educationLevel: string | null;
+    /**
+     * How many sequences match this topic's mapped concepts — the same set "View sequences"
+     * filters the Library by. Only populated on sub-topics (GET /curriculum/topics/{id}/children);
+     * top-level topics carry no concept mapping of their own and always read 0.
+     */
+    sequenceCount: number;
 }
 
 export interface CurriculumCodeExample {
@@ -124,9 +144,75 @@ export interface Worksheet {
     id: string;
     name: string;
     description: string;
-    sequenceDTOS: { id: string }[];
+    /**
+     * The sequences in this worksheet, as shells. `ownerId` is null for seed material nobody
+     * owns; it is here so the list can mark which of them are the reader's own.
+     */
+    sequenceDTOS: { id: string; ownerId?: string | null; title?: string | null }[];
     ownerId: string | null;
     hintsEnabled: boolean;
+    /** Hint credits each student gets per task; null means unlimited. */
+    hintCreditsPerTask: number | null;
+    /** How far the worksheet reaches beyond its owner. See {@link WorksheetVisibility}. */
+    visibility: WorksheetVisibility;
+    /** ISO-8601 instant. */
+    createdAt: string | null;
+    /**
+     * The worksheet this one was copied from. Never shown — it exists so the backend can tell
+     * a copy from an original.
+     */
+    copiedFrom: string | null;
+    copiedAt: string | null;
+}
+
+/**
+ * PRIVATE — owner and admins only, not even readable by link.
+ * UNLISTED — readable by anyone holding the link, listed nowhere. What every worksheet was
+ *   before the marketplace, and still the default.
+ * PUBLIC — listed in the marketplace for other teachers to find and copy.
+ */
+export type WorksheetVisibility = "PRIVATE" | "UNLISTED" | "PUBLIC";
+
+// ── Marketplace ─────────────────────────────────────────
+
+/** One published worksheet as the marketplace lists it. Mirrors `WorksheetSearchResult.Item`. */
+export interface MarketplaceItem {
+    worksheetId: string;
+    name: string;
+    description: string | null;
+    ownerId: string | null;
+    /** ISO-8601 instant. */
+    createdAt: string | null;
+    sequenceCount: number;
+    /** Distinct programming languages of the sequences inside, sorted. */
+    languages: string[];
+    /** How often this worksheet has been copied. */
+    copyCount: number;
+    /** Whether the current user already copied it, so the card can say so. */
+    alreadyCopied: boolean;
+    /**
+     * A `ts_headline` snippet with the match wrapped in control-character markers, or null when
+     * there was no query. Render it with {@link renderHighlight}, never as raw HTML.
+     */
+    highlight: string | null;
+}
+
+export interface MarketplaceFacetBucket {
+    name: string;
+    count: number;
+}
+
+/** Mirrors `WorksheetSearchResult`. */
+export interface MarketplaceSearchResponse {
+    items: MarketplaceItem[];
+    page: number;
+    size: number;
+    total: number;
+    facets: {
+        languages: MarketplaceFacetBucket[];
+        mine: number;
+        others: number;
+    };
 }
 
 // ── Class Types ─────────────────────────────────────────
@@ -136,6 +222,9 @@ export interface ClassInfo {
     name: string;
     description: string;
     ownerId: string;
+    /** Creator's name/email; only sent in the admin overview of all classes. */
+    ownerName?: string | null;
+    ownerEmail?: string | null;
     trackingEnabled: boolean;
     createdAt: string;
     updatedAt: string;
@@ -151,18 +240,90 @@ export interface StudentProgress {
     correctAttempts: number;
 }
 
+export interface StudentProgressTask {
+    taskId: string;
+    tierLevel: number;
+    statement: string;
+    attempts: number;
+    correctAttempts: number;
+    solved: boolean;
+}
+
+/** `index` is the sequence's 1-based position in the worksheet — sequences have no name of their own. */
+export interface StudentProgressSequence {
+    sequenceId: string;
+    index: number;
+    programmingLanguage: string;
+    concepts: string[] | null;
+    taskDescription: string | null;
+    tasks: StudentProgressTask[];
+}
+
+export interface StudentProgressWorksheet {
+    worksheetId: string;
+    name: string;
+    sequences: StudentProgressSequence[];
+}
+
+/**
+ * What one student last built for one task, beside the solution it was meant to become.
+ *
+ * The arrangement comes from the solve page's autosave, which is independent of the attempt
+ * counts on the progress page around it — those count Feedback clicks. A student can therefore
+ * have no attempts and still have left a substantial arrangement here.
+ */
+export interface StudentTaskState {
+    taskId: string;
+    statement: string;
+    programmingLanguage: string;
+    /** The expected solution, annotations intact; run it through toDisplayLines before showing it. */
+    solution: string;
+    /** False when this student has never arranged anything for this task. */
+    hasState: boolean;
+    blockOrder: string[];
+    indentLevels: number[];
+    solved: boolean;
+    solvedAt: string | null;
+    updatedAt: string | null;
+}
+
+/** One student's work across every worksheet assigned to one class. */
+export interface StudentProgressDetail {
+    studentId: string;
+    studentName: string;
+    worksheets: StudentProgressWorksheet[];
+}
+
 export interface StudentInfo {
     userId: string;
     firstName: string;
     lastName: string;
     email: string | null;
     inviteToken: string | null;
+    /** FIM username if the student logs in with a FIM-Account. */
+    fimUid?: string | null;
 }
+
+/** How a worksheet assignment stands relative to its schedule, for one class. */
+export type WorksheetAvailability = "SCHEDULED" | "OPEN" | "CLOSED";
 
 export interface ClassWorksheetInfo {
     worksheetId: string;
     name: string;
     description: string;
+    /**
+     * Set by the teacher's publish button. A newly assigned worksheet starts
+     * false, so students never meet one that is still being prepared.
+     */
+    published?: boolean;
+    /** ISO instant at which it opens by itself; null means only publishing opens it. */
+    releaseAt?: string | null;
+    /** ISO instant, or null for "open indefinitely". */
+    deadlineAt?: string | null;
+    /** Minutes allowed after the deadline; null or 0 means a sharp deadline. */
+    graceMinutes?: number | null;
+    /** Resolved server-side, so the client cannot disagree about the time. */
+    availability?: WorksheetAvailability;
 }
 
 // ── AP19 Teil A: Library / Sequence Tags ───────────────
@@ -180,6 +341,8 @@ export interface SequenceTag {
 
 export interface LibraryItem {
     sequenceId: string;
+    /** The name the owner gave the sequence; absent or null when it has none. */
+    title?: string | null;
     programmingLanguage: string;
     taskDescription: string | null;
     semanticSummary: string | null;
@@ -187,6 +350,7 @@ export interface LibraryItem {
     ownerId: string | null;
     tierCount: number;
     tags: SequenceTag[];
+    concepts: string[];
     usageCount: number;
     /** ts_headline snippet with control-char markers; run through renderHighlight() before display. */
     highlight: string | null;
@@ -201,8 +365,17 @@ export interface LibraryFacetBucket {
 
 export interface LibraryFacets {
     languages: LibraryFacetBucket[];
+    /** Up to the requested `tagsLimit` (see LibraryPage's tagsLimit param), sorted by count. */
     topTags: LibraryFacetBucket[];
+    /** How many distinct tags exist under the current filters, regardless of how many topTags carries. */
+    totalTagCount: number;
+    /** Concept-facet mirror of topTags, bounded by `conceptsLimit`. */
+    topConcepts: LibraryFacetBucket[];
+    /** Concept-facet mirror of totalTagCount. */
+    totalConceptCount: number;
     ownership: { mine: number; others: number };
+    /** Tier counts present under the other filters, ascending; `name` is the count as text. */
+    tierCounts: LibraryFacetBucket[];
 }
 
 export interface LibrarySearchResponse {
@@ -228,6 +401,8 @@ export interface AuthUser {
     token: string;
     /** True when a teacher set a temporary password — user must change it before continuing. */
     mustChangePassword?: boolean;
+    /** True for a FIM-Account user, whose password is managed by the FIM directory. */
+    fimAccount?: boolean;
 }
 
 export interface LoginResponse {
@@ -241,5 +416,7 @@ export interface LoginResponse {
     classIds?: string[];
     /** True when a teacher set a temporary password. */
     mustChangePassword?: boolean;
+    /** True for a FIM-Account user. */
+    fimAccount?: boolean;
 }
 

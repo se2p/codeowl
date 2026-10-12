@@ -39,11 +39,14 @@ HARD REQUIREMENTS
 2. ALIASES are OPTIONAL (0–4). Only add an alias if teachers might realistically search for
    it as a variant of a primary tag. Example: primary="fibonacci", aliases=["fibonacci-folge"].
    Do NOT pad with random synonyms.
-3. All tags MUST be lowercase, hyphenated-slug format. No spaces. No umlauts (use ae/oe/ue).
-   No special characters other than "-".
+3. Tag-slug spelling (primary_tags and aliases ONLY — does NOT apply to short_description,
+   see rule 5): lowercase, hyphenated-slug format. No spaces. No umlauts (use ae/oe/ue). No ß
+   (use ss). No special characters other than "-".
 4. All tags in German where a clear German term exists, otherwise the established
    international term (e.g. "quicksort" stays English, "warenkorb-berechnung" is German).
-5. short_description: ONE sentence (max 120 chars) in German describing what the sequence is about.
+5. short_description: ONE sentence (max 120 chars) of ordinary written German describing what
+   the sequence is about. This is prose, not a slug — use normal spelling with umlauts (ä/ö/ü)
+   and ß where German spelling calls for them (e.g. "Prüft, ob eine Zahl eine Primzahl ist.").
    This becomes a tooltip in the Library card.
 6. If you genuinely cannot identify a semantic topic (e.g. the code is just "print hello"),
    return primary_tags: ["grundlagen"] and short_description: "Einfaches Programmier-Grundlagen-Beispiel."

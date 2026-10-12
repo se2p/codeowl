@@ -74,7 +74,17 @@ database backups.
 For local development outside Docker you additionally need:
 
 - **JDK 21** (the backend ships a Maven wrapper, `./mvnw`)
-- **Node.js 20+** and npm
+- **Node.js 24+** and npm
+
+> **Windows:** the backend's code-analysis dependency (`java-tree-sitter`) only
+> ships native libraries for Linux and macOS, so `./mvnw spring-boot:run` cannot
+> start natively on Windows. Run the backend under **WSL2**, or via **Docker
+> Compose**, instead — see the note in [Local development](#local-development).
+>
+> Running the backend's **tests** under WSL2 additionally needs Docker Desktop's
+> **WSL Integration** enabled for that distro. Without it the Testcontainers-backed
+> database tests skip and the build still reports success — see
+> [`backend/src/main/resources/db/README.md`](backend/src/main/resources/db/README.md#on-windows-enable-docker-desktops-wsl-integration-first).
 
 ---
 
@@ -99,10 +109,11 @@ Once the containers are healthy:
 - **Backend API:** http://localhost:8080/api/
 - **API docs (Swagger UI):** http://localhost:8080/swagger-ui.html
 
-The database is initialised automatically on first start from the SQL files in
-[`db/init/`](db/init) (schema + seed dump, curriculum seed, and migrations) and
-persisted in the `db_data` volume. To start from a clean database, remove the
-volume:
+The database schema is applied automatically by the backend on every start —
+[Flyway](https://flywaydb.org), migrating from
+[`backend/src/main/resources/db/migration/`](backend/src/main/resources/db/migration) — against the
+`db_data` volume, whether that volume is brand new or already has data in it.
+To start from a clean database instead, remove the volume:
 
 ```bash
 docker compose down -v
@@ -134,6 +145,8 @@ All configuration is environment-driven. The variables below are consumed by
 | `MAIL_PORT`             | no       | `587`                       | SMTP port.                                                                  |
 | `MAIL_USERNAME`         | no       | *(empty)*                   | SMTP username.                                                              |
 | `MAIL_PASSWORD`         | no       | *(empty)*                   | SMTP password.                                                              |
+| `LDAP_URL`              | no       | `ldaps://ldap01.fim.uni-passau.de/` | LDAP server checked by "Login with FIM-Account".                    |
+| `LDAP_BASE`             | no       | `ou=users,dc=fim,dc=uni-passau,dc=de` | Base DN of FIM users; they bind as `uid=<username>,<base>`.       |
 
 The datasource (`SPRING_DATASOURCE_*`) and `SPRING_PROFILES_ACTIVE` are wired up
 by `docker-compose.yml` and normally need no changes.
@@ -181,6 +194,23 @@ export SPRING_DATASOURCE_USERNAME=postgres
 export SPRING_DATASOURCE_PASSWORD=postgres
 ./mvnw spring-boot:run
 ```
+> **Windows:** `java-tree-sitter` (used for code analysis) has no native
+> Windows build — running `./mvnw spring-boot:run` directly will fail with
+> `TreeSitterException: ... not compiled for this platform`. Run the backend
+> under **WSL2** instead (Docker Compose also works, since the backend
+> container is Linux-based, but you lose devtools live-reload).
+>
+> **WSL2:** the `java-tree-sitter` native library is compiled against musl
+> libc, so it also fails to load on a stock Ubuntu/Debian WSL2 distro with
+> `UnsatisfiedLinkError: ...libc.musl-x86_64.so.1: cannot open shared object
+> file`. Install musl and symlink it under the expected name (the backend
+> Docker image does the same thing on startup — see `backend/Dockerfile`):
+> ```bash
+> sudo apt-get update
+> sudo apt-get install -y musl
+> sudo ln -sf /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
+> ```
+
 
 **Frontend** (Vite dev server, port 5173):
 
@@ -204,6 +234,8 @@ codeowl/
 │   ├── src/main/java/  # API controllers, services, domain, persistence, AI clients
 │   ├── src/main/resources/
 │   │   ├── application.yml
+│   │   ├── db/migration/ # Flyway migrations, run automatically on backend startup
+│   │   ├── db/undo/      # hand-written rollbacks, run manually, not by Flyway
 │   │   ├── PromptStuff/ # LLM prompt templates
 │   │   └── concepts/    # concept catalog & alias mapping
 │   └── Dockerfile
@@ -211,7 +243,6 @@ codeowl/
 │   ├── src/
 │   ├── nginx.conf
 │   └── Dockerfile
-├── db/init/            # SQL run on first DB start (schema, seed, migrations)
 ├── docker-compose.yml
 └── README.md
 ```
@@ -222,7 +253,7 @@ codeowl/
 
 CodeOwl is licensed under the GNU General Public License v3.0 — see [LICENSE](LICENSE).
 
-Developed at the Chair of Software Engineering II, University of Passau by Luca Cisternino.
+Developed at the Chair of Software Engineering II, University of Passau by Luca Cisternino and Florian Obermüller.
 
 ---
 

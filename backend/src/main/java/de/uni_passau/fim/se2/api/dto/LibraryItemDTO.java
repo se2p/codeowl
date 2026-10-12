@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -36,9 +36,14 @@ import java.util.UUID;
  * <p>{@code alreadyInMyWorksheet} (A15) is a per-row hint computed against the current user's
  * own worksheets so the card can render a "✓ in your library" badge without a second call.
  * Always {@code false} for anonymous requests.
+ *
+ * <p>{@code concepts} is plain names, not a richer DTO like {@code tags} — concepts have no
+ * per-link source/confidence the way a tag does, they're just the sequence's linked entries in
+ * the curated {@code concepts} catalogue.
  */
 public record LibraryItemDTO(
         UUID sequenceId,
+        String title,
         String programmingLanguage,
         String taskDescription,
         String semanticSummary,
@@ -46,6 +51,7 @@ public record LibraryItemDTO(
         UUID ownerId,
         int tierCount,
         List<SequenceTagDTO> tags,
+        List<String> concepts,
         long usageCount,
         String highlight,
         boolean alreadyInMyWorksheet

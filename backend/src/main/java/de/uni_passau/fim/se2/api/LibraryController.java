@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -20,6 +20,9 @@ package de.uni_passau.fim.se2.api;
 
 import de.uni_passau.fim.se2.api.dto.*;
 import de.uni_passau.fim.se2.application.service.*;
+import de.uni_passau.fim.se2.application.query.WorksheetSearchQuery;
+import de.uni_passau.fim.se2.application.query.WorksheetSearchResult;
+import de.uni_passau.fim.se2.application.service.WorksheetSearchService;
 import de.uni_passau.fim.se2.api.dto.LibraryItemDTO;
 import de.uni_passau.fim.se2.api.dto.LibrarySearchResponse;
 import de.uni_passau.fim.se2.application.service.OwnershipService;
@@ -63,6 +66,7 @@ public class LibraryController {
     private final OwnershipService ownershipService;
     private final TaskPersistenceService taskPersistenceService;
     private final WorksheetService worksheetService;
+    private final WorksheetSearchService worksheetSearchService;
     /** Minimal request body for adding a tag — keeps the URL shape clean. */
     public record AddTagRequest(String tag) {}
 
@@ -70,15 +74,21 @@ public class LibraryController {
     /**
      * Endpoint for searching sequences in the library with various filters.
      *
-     * @param q         Query string for search, optional.
-     * @param tagsCsv   Comma-separated tags, optional.
-     * @param tagMode   Tag matching mode, defaults to "any".
-     * @param lang      Language filter, optional.
-     * @param owner     Owner filter, defaults to "any".
-     * @param tierCount Tier count filter, optional.
-     * @param sort      Sort order, defaults to "recent".
-     * @param page      Page number, defaults to 0.
-     * @param size      Page size, defaults to 20.
+     * @param q             Query string for search, optional.
+     * @param tagsCsv       Comma-separated tags, optional.
+     * @param tagMode       Tag matching mode, defaults to "any".
+     * @param conceptsCsv   Comma-separated concepts, optional.
+     * @param conceptMode   Concept matching mode, defaults to "any".
+     * @param lang          Language filter, optional.
+     * @param owner         Owner filter, defaults to "any".
+     * @param tierCount     Tier count filter, optional.
+     * @param sort          Sort order, defaults to "recent".
+     * @param page          Page number, defaults to 0.
+     * @param size          Page size, defaults to 20.
+     * @param tagsLimit     How many top tags the facet sidebar gets back, defaults to 50. The
+     *                      sidebar's "Show more" re-requests with this raised by the same amount
+     *                      each time, rather than the server ever sending the whole tag table.
+     * @param conceptsLimit The concept-facet mirror of {@code tagsLimit}.
      * @return LibrarySearchResponse containing search results.
      */
     @GetMapping("/sequences")
@@ -86,28 +96,65 @@ public class LibraryController {
             @RequestParam(name = "q", required = false) String q,
             @RequestParam(name = "tags", required = false) String tagsCsv,
             @RequestParam(name = "tagMode", required = false, defaultValue = "any") String tagMode,
+            @RequestParam(name = "concepts", required = false) String conceptsCsv,
+            @RequestParam(name = "conceptMode", required = false, defaultValue = "any") String conceptMode,
             @RequestParam(name = "lang", required = false) String lang,
             @RequestParam(name = "owner", required = false, defaultValue = "any") String owner,
             @RequestParam(name = "tierCount", required = false) Integer tierCount,
             @RequestParam(name = "sort", required = false, defaultValue = "recent") String sort,
             @RequestParam(name = "page", required = false, defaultValue = "0") int page,
-            @RequestParam(name = "size", required = false, defaultValue = "20") int size) {
+            @RequestParam(name = "size", required = false, defaultValue = "20") int size,
+            @RequestParam(name = "tagsLimit", required = false) Integer tagsLimit,
+            @RequestParam(name = "conceptsLimit", required = false) Integer conceptsLimit) {
 
         UUID currentUserId = ownershipService.getCurrentUserId();
 
         SearchQuery query = new SearchQuery()
                 .q(q)
-                .tags(parseTagsCsv(tagsCsv))
+                .tags(parseCsvList(tagsCsv))
                 .tagMode(tagMode)
+                .concepts(parseCsvList(conceptsCsv))
+                .conceptMode(conceptMode)
                 .lang(lang)
                 .owner(owner)
                 .tierCount(tierCount)
                 .sort(sort)
                 .page(page)
-                .size(size);
+                .size(size)
+                .tagsLimit(tagsLimit)
+                .conceptsLimit(conceptsLimit);
 
         LibrarySearchResponse response = searchService.search(query, currentUserId);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Search published worksheets — the marketplace.
+     *
+     * <p>Lists only worksheets whose owner set them to PUBLIC, which is enforced in the SQL
+     * rather than here: the filter is the reason this endpoint is safe to serve, so it belongs
+     * where it cannot be forgotten. Readable without logging in, like the sequence library,
+     * although "only mine" then has nothing to mean and returns nothing.
+     *
+     * @param q        free-text query over the worksheets and everything inside them
+     * @param lang     restrict to worksheets containing sequences in this language
+     * @param owner    {@code "me"} to see only what the caller published
+     * @param sort     {@code recent} (default), {@code relevance} or {@code popularity}
+     */
+    @GetMapping("/worksheets")
+    public ResponseEntity<WorksheetSearchResult> searchWorksheets(
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "lang", required = false) String lang,
+            @RequestParam(name = "owner", required = false, defaultValue = "any") String owner,
+            @RequestParam(name = "sort", required = false, defaultValue = "recent") String sort,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "20") int size) {
+
+        WorksheetSearchQuery query = WorksheetSearchQuery.of(
+                q, lang, "me".equalsIgnoreCase(owner), sort, page, size);
+
+        return ResponseEntity.ok(
+                worksheetSearchService.search(query, ownershipService.getCurrentUserId()));
     }
 
     /**
@@ -188,12 +235,12 @@ public class LibraryController {
     }
 
     /**
-     * Parses a comma-separated tag list into a trimmed list of strings.
+     * Parses a comma-separated list (tags or concepts) into a trimmed list of strings.
      *
-     * @param csv Comma-separated tags as a single string.
-     * @return List of trimmed tag strings; null if input is empty or blank.
+     * @param csv Comma-separated values as a single string.
+     * @return List of trimmed strings; null if input is empty or blank.
      */
-    private static List<String> parseTagsCsv(String csv) {
+    private static List<String> parseCsvList(String csv) {
         if (csv == null || csv.isBlank()) {
             return null;
         }

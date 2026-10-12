@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -19,11 +19,14 @@
 package de.uni_passau.fim.se2.application.service;
 
 import de.uni_passau.fim.se2.application.util.CsvWriter;
+import de.uni_passau.fim.se2.domain.entities.ResearchDataset;
+import de.uni_passau.fim.se2.domain.entities.ResearchLog;
 import de.uni_passau.fim.se2.domain.interfaces.ResearchDataReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.OutputStream;
 import java.time.LocalDateTime;
@@ -46,6 +49,7 @@ public class ResearchExportService {
 
     private final ResearchDataReader reader;
     private final ObjectMapper jsonMapper;
+    private final ResearchLogService researchLogService;
 
     /**
      * Streams a ZIP of CSV exports + a metadata file to the given output.
@@ -62,6 +66,9 @@ public class ResearchExportService {
             totalRows += writeTable(zip, "learning_events.csv", reader.readLearningEvents(), rowCounts);
             totalRows += writeTable(zip, "feedback_logs.csv", reader.readFeedbackLogs(), rowCounts);
             totalRows += writeTable(zip, "hint_usage.csv", reader.readHintUsage(), rowCounts);
+            // The saved arrangements themselves. Missing from this bundle until now, which left
+            // the export able to say how a student got somewhere but not what they ended up with.
+            totalRows += writeTable(zip, "task_submissions.csv", reader.readTaskSubmissions(), rowCounts);
             totalRows += writeTable(zip, "task_change_analyses.csv", reader.readTaskChangeAnalyses(), rowCounts);
             totalRows += writeTable(zip, "problem_statement_ratings.csv", reader.readProblemStatementRatings(), rowCounts);
             totalRows += writeTable(zip, "tasks.csv", reader.readTasks(), rowCounts);
@@ -92,6 +99,66 @@ public class ResearchExportService {
         }
 
         log.info("Research export complete: {} total rows, admin={}", totalRows, adminIdShort);
+        return totalRows;
+    }
+
+    /**
+     * The same bundle, narrowed to one class.
+     *
+     * <p>Only the four datasets the research page shows, plus the class roster needed to read
+     * them — not the whole nineteen-table dump, which is what {@link #streamExport} is for.
+     *
+     * <p>Read-only transaction for the same reason {@code ResearchLogService.streamCsv} is one:
+     * the row-by-row reads underneath only stream if the driver is not in autocommit.
+     *
+     * @return total number of rows written across all tables
+     */
+    @Transactional(readOnly = true)
+    public long streamClassExport(OutputStream output, UUID classId, String className,
+                                  ResearchLog.Filter filter, String adminIdShort) throws Exception {
+        long totalRows = 0;
+        Map<String, Long> rowCounts = new LinkedHashMap<>();
+
+        try (ZipOutputStream zip = new ZipOutputStream(output)) {
+
+            for (ResearchDataset dataset : ResearchDataset.values()) {
+                String filename = dataset.table() + ".csv";
+                zip.putNextEntry(new ZipEntry(filename));
+                try {
+                    CsvWriter csv = new CsvWriter(zip);
+                    long rows = researchLogService.writeRows(csv, dataset, filter);
+                    csv.flush();
+                    rowCounts.put(filename, rows);
+                    totalRows += rows;
+                } finally {
+                    zip.closeEntry();
+                }
+            }
+
+            totalRows += writeTable(zip, "class_students.csv",
+                    reader.readClassStudents(classId), rowCounts);
+
+            // Written last, so rowCounts is complete. The filter goes in as well: a bundle that
+            // does not say which slice it is a bundle of cannot be reproduced or trusted later.
+            zip.putNextEntry(new ZipEntry("_metadata.json"));
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("exportedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            meta.put("adminIdShort", adminIdShort);
+            meta.put("classId", classId != null ? classId.toString() : null);
+            meta.put("className", className);
+            meta.put("filterEventType", filter.eventType());
+            meta.put("filterFrom", filter.from() != null ? filter.from().toString() : null);
+            meta.put("filterTo", filter.to() != null ? filter.to().toString() : null);
+            meta.put("totalRows", totalRows);
+            meta.put("perTableRowCounts", rowCounts);
+            meta.put("schemaVersion", 1);
+            meta.put("piiPolicy", "No names or emails. User and class ids are UUID pseudonyms.");
+            zip.write(jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(meta));
+            zip.closeEntry();
+        }
+
+        log.info("Class research export complete: classId={}, {} total rows, admin={}",
+                classId, totalRows, adminIdShort);
         return totalRows;
     }
 

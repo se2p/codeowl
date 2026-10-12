@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -120,17 +120,24 @@ public class ManualTaskService {
         // taskDescription = first tier's statement (summary)
         String taskDescription = request.getTiers().get(0).getStatement().trim();
 
+        // tierCount comes from the tiers actually built, not the @Builder.Default of 3 — a
+        // 1- or 2-tier manual sequence (the UI allows fewer than 3) would otherwise persist as
+        // "3 tiers" and both mislabel and drop out of the library's tier-count filter, the same
+        // failure TieredTaskSequenceDTO.copyFor() documents for the worksheet-copy path.
         TieredTaskSequenceDTO sequence = TieredTaskSequenceDTO.builder()
                 .id(sequenceId)
                 .programmingLanguage(language)
                 .concepts(request.getConcepts())
                 .tasks(tasks)
-                .codeSnippet(null) // no snippet for manual creation
+                // No input snippet in manual mode, but TaskPersistenceService.validateSequence
+                // requires a non-blank one: use the first tier's solution as representative.
+                .codeSnippet(tasks.get(0).getSolution())
                 .taskDescription(taskDescription)
                 .createdAt(LocalDateTime.now())
                 .versionId(versionId)
                 .strategyName("ManualCreation")
                 .ownerId(ownerId)
+                .tierCount(tasks.size())
                 .build();
 
         // ── Persist ─────────────────────────────────────────────

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -79,6 +79,32 @@ public class PostgreConceptDAO implements ConceptRepository {
     }
 
     /**
+     * Loads every programming concept, whether curated or generated. Unlike
+     * {@link #loadAllOriginal()} this does not filter on the {@code generated}
+     * flag, so it is the complete catalogue a concept may be picked from.
+     *
+     * @return all concepts, ordered by name
+     */
+    @Override
+    public List<ConceptDTO> loadAll() {
+        String sql = "SELECT id, name, description, generated FROM concepts ORDER BY name";
+        return jdbc.query(sql, new ConceptRowMapper());
+    }
+
+    /**
+     * Concept names are stored lowercase — the concept catalogue and the
+     * curriculum mapping have always been written that way, and
+     * concepts.name is UNIQUE but case-sensitive, so "Recursion" alongside
+     * "recursion" would be two rows meaning one thing. Normalising here
+     * covers both write paths; the concepts_name_lowercase_check constraint
+     * (14_migration_lowercase_concept_names.sql) catches anything that is not
+     * written through them.
+     */
+    private static String normalizeName(String name) {
+        return name == null ? null : name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /**
      * Saves the specified programming concept to the repository.
      * This method persists the provided ConceptDTO object, allowing
      * it to be retrieved or modified at a later time.
@@ -94,11 +120,12 @@ public class PostgreConceptDAO implements ConceptRepository {
             ON CONFLICT (name) DO NOTHING
         """;
 
+        String name = normalizeName(concept.getName());
         UUID id = UUID.randomUUID();
-        jdbc.update(insertSql, id, concept.getName(), concept.getDescription(), true);
+        jdbc.update(insertSql, id, name, concept.getDescription(), true);
 
         String selectSql = "SELECT id FROM concepts WHERE name = ?";
-        return jdbc.queryForObject(selectSql, UUID.class, concept.getName());
+        return jdbc.queryForObject(selectSql, UUID.class, name);
     }
 
     /**
@@ -113,7 +140,7 @@ public class PostgreConceptDAO implements ConceptRepository {
         LinkedHashMap<String, ConceptDTO> uniqueByName = new LinkedHashMap<>();
         for (ConceptDTO c : concepts) {
             if (c != null && c.getName() != null && !c.getName().isBlank()) {
-                uniqueByName.putIfAbsent(c.getName(), c);
+                uniqueByName.putIfAbsent(normalizeName(c.getName()), c);
             }
         }
         if (uniqueByName.isEmpty()) return List.of();
@@ -123,13 +150,15 @@ public class PostgreConceptDAO implements ConceptRepository {
             VALUES (?, ?, ?, ?)
             ON CONFLICT (name) DO NOTHING
         """;
+        // The normalised names, in the same order as the batch below.
+        List<String> batchNames = new ArrayList<>(uniqueByName.keySet());
         List<ConceptDTO> batch = new ArrayList<>(uniqueByName.values());
         jdbc.batchUpdate(insertSql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
                 ConceptDTO c = batch.get(i);
                 ps.setObject(1, UUID.randomUUID());
-                ps.setString(2, c.getName());
+                ps.setString(2, batchNames.get(i));
                 ps.setString(3, c.getDescription());
                 ps.setBoolean(4, true);
             }
@@ -143,7 +172,7 @@ public class PostgreConceptDAO implements ConceptRepository {
         // Single SELECT to resolve IDs in one round-trip, then map back to input order.
         String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
         String selectSql = "SELECT id, name FROM concepts WHERE name IN (" + placeholders + ")";
-        Object[] params = batch.stream().map(ConceptDTO::getName).toArray();
+        Object[] params = batchNames.toArray();
 
         Map<String, UUID> byName = new HashMap<>();
         jdbc.query(selectSql, rs -> {
@@ -153,7 +182,7 @@ public class PostgreConceptDAO implements ConceptRepository {
         List<UUID> result = new ArrayList<>(concepts.size());
         for (ConceptDTO c : concepts) {
             if (c == null || c.getName() == null) continue;
-            UUID id = byName.get(c.getName());
+            UUID id = byName.get(normalizeName(c.getName()));
             if (id != null) result.add(id);
         }
         return result;

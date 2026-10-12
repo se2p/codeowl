@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -160,22 +160,18 @@ public class CurriculumGenerationService {
         TieredTaskSequenceDTO sequence = TaskSequenceMapper.mapToIncompleteSequence(
                 json, concepts, language, null, topic.getName(), tierCount);
 
-        // Set metadata
+        // Set metadata. Done before enrichment, not after: enrichWithSolutions now carries
+        // everything on `sequence` forward via toBuilder(), so this is where it has to land.
         sequence.setOwnerId(ownerId);
         sequence.setVersionId(versionId);
         sequence.setConstraints(constraints);
         sequence.setCurriculumTopicId(topicId);
+        sequence.setTargetLanguage(targetLanguage);
+        sequence.setTierCount(tierCount);
 
         // Enrich tasks (complexity analysis, distractors, AP22 context, AP31 splits)
         TieredTaskSequenceDTO enriched = taskEnricher.enrichWithSolutions(
                 sequence, distractorsEnabled, contextModeEnabled, splitEnabled);
-        // Preserve metadata that enrichWithSolutions does not copy
-        enriched.setOwnerId(ownerId);
-        enriched.setVersionId(versionId);
-        enriched.setConstraints(constraints);
-        enriched.setCurriculumTopicId(topicId);
-        enriched.setTargetLanguage(targetLanguage);
-        enriched.setTierCount(tierCount);
         // AP19/AP32: a curriculum sequence is anchored on curated seed examples rather than
         // a single input snippet, so the mapper leaves codeSnippet null. Persist the first
         // non-blank seed example's code as the sequence's representative snippet, otherwise
@@ -194,9 +190,26 @@ public class CurriculumGenerationService {
         return topicRepo.findTopLevel();
     }
 
-    /** Returns sub-topics for a given parent topic. */
+    /**
+     * Returns sub-topics for a given parent topic, each carrying how many sequences match its
+     * mapped concepts — the Curriculum page's per-topic count badge.
+     */
     public List<CurriculumTopicDTO> getSubTopics(UUID parentId) {
-        return topicRepo.findByParentId(parentId);
+        List<CurriculumTopicDTO> topics = topicRepo.findByParentId(parentId);
+        attachSequenceCounts(topics);
+        return topics;
+    }
+
+    /** Fills in {@link CurriculumTopicDTO#getSequenceCount()} for a batch of topics in one query. */
+    private void attachSequenceCounts(List<CurriculumTopicDTO> topics) {
+        if (topics.isEmpty()) {
+            return;
+        }
+        List<UUID> ids = topics.stream().map(CurriculumTopicDTO::getId).toList();
+        Map<UUID, Integer> counts = topicRepo.countSequencesByTopicIds(ids);
+        for (CurriculumTopicDTO topic : topics) {
+            topic.setSequenceCount(counts.getOrDefault(topic.getId(), 0));
+        }
     }
 
     /** Returns code examples for a given topic and language. */

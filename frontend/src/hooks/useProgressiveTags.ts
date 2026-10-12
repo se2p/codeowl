@@ -40,6 +40,14 @@ export interface ProgressiveTagsState {
     tags: SequenceTag[];
     /** True while the hook is actively polling for an LLM tag to arrive. */
     isWaitingForLlm: boolean;
+    /**
+     * Replaces the list with one the caller knows to be current — the response
+     * to a tag edit, which is as authoritative as anything the poll would fetch.
+     * Callers that pass {@code initialTags} do not need this: their own state is
+     * the seed, and the sync effect picks the change up. Callers that let the
+     * hook fetch have nowhere else to put the answer.
+     */
+    setTags: (next: SequenceTag[]) => void;
 }
 
 export function useProgressiveTags(
@@ -138,5 +146,5 @@ export function useProgressiveTags(
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sequenceId, createdAt]);
 
-    return { tags, isWaitingForLlm };
+    return { tags, isWaitingForLlm, setTags };
 }

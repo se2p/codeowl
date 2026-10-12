@@ -3,12 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { renderHighlight } from "../lib/highlight";
+import { sequenceOptionTitle } from "../lib/sequencePicker";
 import { useAuth } from "../context/AuthContext";
 import { useLibraryFilters } from "../hooks/useLibraryFilters";
 import TagChip from "../components/TagChip";
 import TagChipSkeleton from "../components/TagChipSkeleton";
 import TagEditor from "../components/TagEditor";
 import ToastMessage from "../components/ToastMessage";
+import AddToWorksheetModal from "../components/AddToWorksheetModal";
 import { useProgressiveTags } from "../hooks/useProgressiveTags";
 import type {
     LibraryItem,
@@ -61,6 +63,15 @@ interface BulkCopyToastState {
 }
 
 /**
+ * Default tag-facet page size, and the amount "Show more" adds each click — must match the
+ * backend's SequenceSearchService.FACET_TOP_TAGS_DEFAULT so the two "50"s can't drift apart.
+ */
+const TAG_FACET_STEP = 50;
+
+/** Concept-facet mirror of {@link TAG_FACET_STEP} — must match FACET_TOP_CONCEPTS_DEFAULT. */
+const CONCEPT_FACET_STEP = 50;
+
+/**
  * AP19 Teil A: The Library (A9 skeleton + A10 filters + URL-state).
  *
  * <p>Architecture:
@@ -110,6 +121,11 @@ export default function LibraryPage() {
     // A12: copy-to-worksheet toast state.
     const [copyToast, setCopyToast] = useState<CopyToastState | null>(null);
 
+    // "Add to worksheet": links an existing card's sequence into a worksheet the teacher picks,
+    // as opposed to Copy (above), which deep-copies it into the default inbox. One modal instance
+    // for the whole grid, addressed by sequence id — see AddToWorksheetModal.
+    const [addToWorksheetSequenceId, setAddToWorksheetSequenceId] = useState<string | null>(null);
+
     // A15c: bulk-copy state — `selectMode` flips checkboxes on every card, `selectedIds` tracks
     // picks across page loads (cleared on mode-off), `bulkCopying` disables the action button
     // during the POST, and `bulkToast` drives the aggregated result toast.
@@ -117,6 +133,12 @@ export default function LibraryPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkCopying, setBulkCopying] = useState(false);
     const [bulkToast, setBulkToast] = useState<BulkCopyToastState | null>(null);
+
+    // Sidebar tag/concept facets: how many top entries the backend should return for each.
+    // "Show more" bumps the relevant one by its *_FACET_STEP and re-fetches — the backend never
+    // sends the whole tag or concept table unasked.
+    const [tagsLimit, setTagsLimit] = useState(TAG_FACET_STEP);
+    const [conceptsLimit, setConceptsLimit] = useState(CONCEPT_FACET_STEP);
 
     const fetchPage = useCallback(async () => {
         setLoading(true);
@@ -126,6 +148,8 @@ export default function LibraryPage() {
                 page: filters.page,
                 size: 20,
                 sort: filters.sort,
+                tagsLimit,
+                conceptsLimit,
             };
             if (filters.q) params.q = filters.q;
             if (filters.lang) params.lang = filters.lang;
@@ -133,6 +157,10 @@ export default function LibraryPage() {
             if (filters.tags.length > 0) {
                 params.tags = filters.tags.join(",");
                 if (filters.tagMode === "all") params.tagMode = "all";
+            }
+            if (filters.concepts.length > 0) {
+                params.concepts = filters.concepts.join(",");
+                if (filters.conceptMode === "all") params.conceptMode = "all";
             }
             if (filters.tierCount != null) params.tierCount = filters.tierCount;
 
@@ -151,7 +179,11 @@ export default function LibraryPage() {
         filters.owner,
         filters.tags,
         filters.tagMode,
+        filters.concepts,
+        filters.conceptMode,
         filters.tierCount,
+        tagsLimit,
+        conceptsLimit,
         t,
     ]);
 
@@ -371,6 +403,8 @@ export default function LibraryPage() {
                         facets={data?.facets}
                         filters={filters}
                         isLoggedIn={isLoggedIn}
+                        onShowMoreTags={() => setTagsLimit((prev) => prev + TAG_FACET_STEP)}
+                        onShowMoreConcepts={() => setConceptsLimit((prev) => prev + CONCEPT_FACET_STEP)}
                     />
                 </aside>
 
@@ -467,6 +501,43 @@ export default function LibraryPage() {
                                     )}
                                 </div>
                             )}
+
+                            {/* Active-concept chip row — same shape as the tag row above. */}
+                            {filters.concepts.length > 0 && (
+                                <div className="mt-3 d-flex flex-wrap gap-1 align-items-center">
+                                    <span className="small text-muted me-1">
+                                        {t("library.activeConcepts")}:
+                                    </span>
+                                    {filters.concepts.map((concept) => (
+                                        <button
+                                            key={concept}
+                                            className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                                            onClick={() => filters.removeConcept(concept)}
+                                            title={t("library.removeConcept", { concept }) as string}
+                                        >
+                                            {concept}
+                                            <i className="bi bi-x-circle-fill"></i>
+                                        </button>
+                                    ))}
+
+                                    {filters.concepts.length > 1 && (
+                                        <div className="btn-group btn-group-sm ms-2" role="group">
+                                            <button
+                                                className={`btn ${filters.conceptMode === "any" ? "btn-secondary" : "btn-outline-secondary"}`}
+                                                onClick={() => filters.setConceptMode("any")}
+                                            >
+                                                {t("library.conceptMode.any")}
+                                            </button>
+                                            <button
+                                                className={`btn ${filters.conceptMode === "all" ? "btn-secondary" : "btn-outline-secondary"}`}
+                                                onClick={() => filters.setConceptMode("all")}
+                                            >
+                                                {t("library.conceptMode.all")}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -517,14 +588,20 @@ export default function LibraryPage() {
                                         <LibrarySequenceCard
                                             item={item}
                                             activeTags={filters.tags}
+                                            activeConcepts={filters.concepts}
                                             onOpen={() => navigate(`/sequence/${item.sequenceId}`)}
                                             onTagClick={filters.toggleTag}
+                                            onConceptClick={filters.toggleConcept}
                                             canEdit={canEditTagsFor(item)}
                                             canCopy={isLoggedIn && !isStudent}
+                                            canAddToWorksheet={isLoggedIn && !isStudent}
                                             onTagsUpdated={(next) =>
                                                 updateItemTags(item.sequenceId, next)
                                             }
                                             onCopy={() => handleCopy(item)}
+                                            onAddToWorksheet={() =>
+                                                setAddToWorksheetSequenceId(item.sequenceId)
+                                            }
                                             selectMode={selectMode}
                                             isSelected={selectedIds.has(item.sequenceId)}
                                             onToggleSelected={() => toggleSelected(item.sequenceId)}
@@ -714,6 +791,14 @@ export default function LibraryPage() {
                     onClose={() => setBulkToast(null)}
                 />
             )}
+
+            {/* ── Add-to-worksheet modal ── */}
+            {addToWorksheetSequenceId && (
+                <AddToWorksheetModal
+                    sequenceId={addToWorksheetSequenceId}
+                    onClose={() => setAddToWorksheetSequenceId(null)}
+                />
+            )}
         </div>
     );
 }
@@ -727,12 +812,37 @@ function FilterSidebar({
     facets,
     filters,
     isLoggedIn,
+    onShowMoreTags,
+    onShowMoreConcepts,
 }: {
     facets: import("../types/models").LibraryFacets | undefined;
     filters: ReturnType<typeof useLibraryFilters>;
     isLoggedIn: boolean;
+    /** Asks the parent to re-fetch with a higher tagsLimit — "Show more" is a real request. */
+    onShowMoreTags: () => void;
+    /** Concept-facet mirror of {@link onShowMoreTags}. */
+    onShowMoreConcepts: () => void;
 }) {
     const { t } = useTranslation();
+
+    // Tier counts that actually occur under the other filters. The active one is kept even if
+    // it has no matches (e.g. from a shared URL), so it can still be seen and switched off.
+    const tierOptions = Array.from(new Set([
+        ...(facets?.tierCounts ?? []).map((b) => Number(b.name)).filter((n) => n > 0),
+        ...(filters.tierCount != null ? [filters.tierCount] : []),
+    ])).sort((a, b) => a - b);
+
+    // Whether the tag/concept cloud sections are shown at all — pure display state, independent
+    // of how many entries the backend sent (that's tagsLimit/conceptsLimit, owned by the parent).
+    const [tagsVisible, setTagsVisible] = useState(true);
+    const allTags = facets?.topTags ?? [];
+    const totalTagCount = facets?.totalTagCount ?? 0;
+    const hasMoreTags = allTags.length < totalTagCount;
+
+    const [conceptsVisible, setConceptsVisible] = useState(true);
+    const allConcepts = facets?.topConcepts ?? [];
+    const totalConceptCount = facets?.totalConceptCount ?? 0;
+    const hasMoreConcepts = allConcepts.length < totalConceptCount;
 
     return (
         <div className="card sticky-top" style={{ top: "1rem" }}>
@@ -792,28 +902,104 @@ function FilterSidebar({
                 </h6>
                 <div className="btn-group btn-group-sm w-100 mb-3" role="group">
                     <TierButton value={null} filters={filters} label={t("library.tierAny")} />
-                    <TierButton value={3} filters={filters} label="3" />
-                    <TierButton value={5} filters={filters} label="5" />
+                    {tierOptions.map((n) => (
+                        <TierButton key={n} value={n} filters={filters} label={String(n)} />
+                    ))}
                 </div>
 
-                {/* ── Tag cloud ── */}
+                {/* ── Tag cloud ──
+                    tagsLimit (owned by the parent) bounds what the backend sends; totalTagCount
+                    is the true count regardless of that limit, so "Show more" knows whether
+                    there's actually anything left and re-requests for exactly TAG_FACET_STEP
+                    more when clicked. */}
                 <h6 className="text-uppercase text-muted small mb-2 d-flex justify-content-between align-items-center">
                     <span>
                         <i className="bi bi-tags me-1"></i>
                         {t("library.tagsLabel")}
                     </span>
-                    {facets && facets.topTags.length > 0 && (
-                        <span className="text-muted">{facets.topTags.length}</span>
-                    )}
+                    <span className="d-flex align-items-center gap-2">
+                        {totalTagCount > 0 && (
+                            <span className="text-muted">{totalTagCount}</span>
+                        )}
+                        {totalTagCount > 0 && (
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-link text-muted p-0 text-decoration-none"
+                                style={{ fontSize: "0.78rem" }}
+                                onClick={() => setTagsVisible((v) => !v)}
+                                aria-expanded={tagsVisible}
+                            >
+                                {tagsVisible ? t("library.hideTags") : t("library.showTags")}
+                            </button>
+                        )}
+                    </span>
                 </h6>
-                {facets?.topTags.length === 0 && (
+                {totalTagCount === 0 && (
                     <div className="small text-muted">{t("library.noTagsYet")}</div>
                 )}
-                <div className="d-flex flex-wrap gap-1" style={{ maxHeight: "22rem", overflowY: "auto" }}>
-                    {facets?.topTags.map((b) => (
-                        <TagFacetChip key={b.name} bucket={b} filters={filters} />
-                    ))}
-                </div>
+                {tagsVisible && totalTagCount > 0 && (
+                    <>
+                        <div className="d-flex flex-wrap gap-1" style={{ maxHeight: "22rem", overflowY: "auto" }}>
+                            {allTags.map((b) => (
+                                <TagFacetChip key={b.name} bucket={b} filters={filters} />
+                            ))}
+                        </div>
+                        {hasMoreTags && (
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary w-100 mt-2"
+                                onClick={onShowMoreTags}
+                            >
+                                {t("library.showMoreTags")}
+                            </button>
+                        )}
+                    </>
+                )}
+
+                {/* ── Concept cloud — same shape as the tag cloud above. ── */}
+                <h6 className="text-uppercase text-muted small mb-2 mt-3 d-flex justify-content-between align-items-center">
+                    <span>
+                        <i className="bi bi-diagram-3 me-1"></i>
+                        {t("library.conceptsLabel")}
+                    </span>
+                    <span className="d-flex align-items-center gap-2">
+                        {totalConceptCount > 0 && (
+                            <span className="text-muted">{totalConceptCount}</span>
+                        )}
+                        {totalConceptCount > 0 && (
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-link text-muted p-0 text-decoration-none"
+                                style={{ fontSize: "0.78rem" }}
+                                onClick={() => setConceptsVisible((v) => !v)}
+                                aria-expanded={conceptsVisible}
+                            >
+                                {conceptsVisible ? t("library.hideConcepts") : t("library.showConcepts")}
+                            </button>
+                        )}
+                    </span>
+                </h6>
+                {totalConceptCount === 0 && (
+                    <div className="small text-muted">{t("library.noConceptsYet")}</div>
+                )}
+                {conceptsVisible && totalConceptCount > 0 && (
+                    <>
+                        <div className="d-flex flex-wrap gap-1" style={{ maxHeight: "22rem", overflowY: "auto" }}>
+                            {allConcepts.map((b) => (
+                                <ConceptFacetChip key={b.name} bucket={b} filters={filters} />
+                            ))}
+                        </div>
+                        {hasMoreConcepts && (
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary w-100 mt-2"
+                                onClick={onShowMoreConcepts}
+                            >
+                                {t("library.showMoreConcepts")}
+                            </button>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );
@@ -861,6 +1047,29 @@ function TagFacetChip({
     );
 }
 
+/** Concept-facet mirror of {@link TagFacetChip}. */
+function ConceptFacetChip({
+    bucket,
+    filters,
+}: {
+    bucket: LibraryFacetBucket;
+    filters: ReturnType<typeof useLibraryFilters>;
+}) {
+    const active = filters.concepts.includes(bucket.name);
+    return (
+        <button
+            className={`btn btn-sm ${active ? "btn-primary" : "btn-outline-secondary"} d-inline-flex align-items-center gap-1`}
+            onClick={() => filters.toggleConcept(bucket.name)}
+            style={{ fontSize: "0.78rem" }}
+        >
+            <span>{bucket.name}</span>
+            <span className={`badge ${active ? "text-bg-light text-dark" : "text-bg-secondary"}`}>
+                {bucket.count}
+            </span>
+        </button>
+    );
+}
+
 /**
  * One card in the Library grid.
  *
@@ -870,24 +1079,32 @@ function TagFacetChip({
 function LibrarySequenceCard({
     item,
     activeTags,
+    activeConcepts,
     onOpen,
     onTagClick,
+    onConceptClick,
     canEdit,
     canCopy,
+    canAddToWorksheet,
     onTagsUpdated,
     onCopy,
+    onAddToWorksheet,
     selectMode,
     isSelected,
     onToggleSelected,
 }: {
     item: LibraryItem;
     activeTags: string[];
+    activeConcepts: string[];
     onOpen: () => void;
     onTagClick: (tag: string) => void;
+    onConceptClick: (concept: string) => void;
     canEdit: boolean;
     canCopy: boolean;
+    canAddToWorksheet: boolean;
     onTagsUpdated: (next: SequenceTag[]) => void;
     onCopy: () => void;
+    onAddToWorksheet: () => void;
     /** When true, the card shows a top-right checkbox and clicking the card body toggles selection. */
     selectMode: boolean;
     isSelected: boolean;
@@ -924,10 +1141,10 @@ function LibrarySequenceCard({
         wasWaitingRef.current = isWaitingForLlm;
     }, [isWaitingForLlm, tags, onTagsUpdated]);
 
-    const title =
-        item.taskDescription?.trim() ||
-        item.semanticSummary?.trim() ||
-        t("library.untitled");
+    const title = sequenceOptionTitle(item, t("library.untitled"));
+    // A named sequence would otherwise lose its task description, which is the title of an
+    // unnamed one; it moves under the name instead.
+    const subtitle = item.title?.trim() ? item.taskDescription?.trim() : undefined;
 
     // A15c: visual affordance for select mode. A selected card gets a primary-border ring so the
     // user can scan their picks at a glance while scrolling a large grid.
@@ -998,7 +1215,17 @@ function LibrarySequenceCard({
                 <h5 className="card-title mb-1" style={{ fontSize: "1rem" }}>
                     {title}
                 </h5>
+                {subtitle && !item.highlight && (
+                    <p className="card-text small text-muted mb-2">{subtitle}</p>
+                )}
 
+                {/* The sequence's semanticSummary is deliberately NOT rendered here. It is an
+                    LLM-generated one-liner that the tagger prompt intends as a card tooltip; as
+                    visible body text it read like a second task description competing with the
+                    title, and it appeared nowhere else in the app (the detail view never showed
+                    it). The field itself is untouched: still generated by SemanticTaggingListener,
+                    still stored, still weighted into search_vector, and still the card-title
+                    fallback above — only this paragraph is gone. */}
                 {item.highlight ? (
                     // A14: highlight is a ts_headline snippet with control-char markers.
                     // renderHighlight() escapes the whole payload before swapping markers for
@@ -1007,8 +1234,6 @@ function LibrarySequenceCard({
                         className="card-text small text-muted mb-2"
                         dangerouslySetInnerHTML={{ __html: renderHighlight(item.highlight) }}
                     />
-                ) : item.semanticSummary ? (
-                    <p className="card-text small text-muted mb-2">{item.semanticSummary}</p>
                 ) : null}
 
                 {/* ── Tag region: read-only chips OR full editor ── */}
@@ -1081,20 +1306,54 @@ function LibrarySequenceCard({
                     </div>
                 )}
 
+                {/* Concepts the sequence covers — read-only here (editing stays on the
+                    sequence detail page). Clicking one toggles it as a library filter,
+                    the same way a tag chip does. Distinguished from the tag row above by
+                    the diagram icon, mirroring the sidebar's Tags/Concepts split. */}
+                {item.concepts.length > 0 && (
+                    <div className="d-flex flex-wrap gap-1 mb-3 align-items-center">
+                        <i
+                            className="bi bi-diagram-3 text-muted"
+                            aria-hidden="true"
+                            style={{ fontSize: "0.8rem" }}
+                        ></i>
+                        {item.concepts.slice(0, 6).map((concept) => {
+                            const active = activeConcepts.includes(concept);
+                            return (
+                                <button
+                                    key={concept}
+                                    type="button"
+                                    className={`badge border-0 ${active ? "text-bg-primary" : "bg-secondary-subtle text-secondary-emphasis"}`}
+                                    style={{ cursor: "pointer", fontWeight: 500, fontSize: "0.78rem" }}
+                                    onClick={() => onConceptClick(concept)}
+                                >
+                                    {concept}
+                                </button>
+                            );
+                        })}
+                        {item.concepts.length > 6 && (
+                            <span className="badge text-bg-light text-muted">
+                                +{item.concepts.length - 6}
+                            </span>
+                        )}
+                    </div>
+                )}
+
                 <div className="mt-auto d-flex gap-2">
                     <Link
                         to={`/sequence/${item.sequenceId}`}
-                        className="btn btn-sm btn-outline-primary flex-fill"
+                        className="btn btn-sm btn-outline-primary flex-shrink-0"
+                        title={t("library.open") as string}
+                        aria-label={t("library.open") as string}
                         onClick={(e) => {
                             e.preventDefault();
                             onOpen();
                         }}
                     >
-                        <i className="bi bi-eye me-1"></i>
-                        {t("library.open")}
+                        <i className="bi bi-eye"></i>
                     </Link>
                     <button
-                        className="btn btn-sm btn-outline-success"
+                        className="btn btn-sm btn-outline-success flex-fill"
                         disabled={!canCopy || copying}
                         title={
                             !canCopy
@@ -1120,6 +1379,19 @@ function LibrarySequenceCard({
                             <i className="bi bi-clipboard-plus me-1"></i>
                         )}
                         {t("library.copy")}
+                    </button>
+                    <button
+                        className="btn btn-sm btn-outline-secondary flex-fill"
+                        disabled={!canAddToWorksheet}
+                        title={
+                            !canAddToWorksheet
+                                ? (t("library.addToWorksheetLoginRequired") as string)
+                                : (t("sequence.addToWorksheetTitle") as string)
+                        }
+                        onClick={onAddToWorksheet}
+                    >
+                        <i className="bi bi-journal-plus me-1"></i>
+                        {t("sequence.addToWorksheet")}
                     </button>
                 </div>
             </div>

@@ -166,22 +166,22 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
 
                 {/* AP15: Distractor editing */}
                 <Form.Group className="mb-3">
-                    <Form.Label>{t("taskEdit.distractors", "Distractors")}</Form.Label>
+                    <Form.Label>{t("taskEdit.distractors")}</Form.Label>
                     <Form.Control
                         as="textarea"
                         rows={4}
                         value={distractors}
                         onChange={(e) => setDistractors(e.target.value)}
-                        placeholder={t("taskEdit.distractorsPlaceholder", "One distractor per line, each ending with #distractor")}
+                        placeholder={t("taskEdit.distractorsPlaceholder")}
                         style={{ fontFamily: "monospace", fontSize: "0.9rem" }}
                     />
                     <Form.Text className="text-muted" style={{ fontSize: "0.8rem" }}>
-                        {t("taskEdit.distractorsHelp", "Each line must end with #distractor. Do not use #swap or #group on distractor lines.")}
+                        {t("taskEdit.distractorsHelp")}
                     </Form.Text>
                     {distractorPlan && (
                         <div className="mt-1">
                             <small className="text-muted">
-                                <strong>{t("taskEdit.distractorPlan", "Plan")}:</strong>{" "}
+                                <strong>{t("taskEdit.distractorPlan")}:</strong>{" "}
                                 {(() => {
                                     try {
                                         const plan = JSON.parse(distractorPlan);

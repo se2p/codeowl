@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -54,6 +54,14 @@ public interface ConceptRepository {
      *         available, or an empty list if no concepts are found
      */
     List<ConceptDTO> loadAllOriginal();
+    /**
+     * Loads every programming concept, whether curated or generated. Unlike
+     * {@link #loadAllOriginal()} this does not filter on the {@code generated}
+     * flag, so it is the complete catalogue a concept may be picked from.
+     *
+     * @return all concepts, or an empty list if there are none
+     */
+    List<ConceptDTO> loadAll();
     /**
      * Saves the specified programming concept to the repository.
      * This method persists the provided ConceptDTO object, allowing

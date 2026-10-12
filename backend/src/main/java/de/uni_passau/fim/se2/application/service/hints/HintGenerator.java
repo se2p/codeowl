@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -26,13 +26,13 @@ import org.springframework.stereotype.Service;
 public class HintGenerator {
 
     public String generate(List<BlockMapper.BlockFinding> blockFindings, String language) {
-        return generate(blockFindings, language, List.of(), false, 0, 0);
+        return generate(blockFindings, language, List.of(), false, 0, 0, HintLocale.DE);
     }
 
     /** @deprecated Use the full overload with block-count context. */
     public String generate(List<BlockMapper.BlockFinding> blockFindings, String language,
                            List<Integer> distractorBlockIndices) {
-        return generate(blockFindings, language, distractorBlockIndices, false, 0, 0);
+        return generate(blockFindings, language, distractorBlockIndices, false, 0, 0, HintLocale.DE);
     }
 
     /**
@@ -44,45 +44,69 @@ public class HintGenerator {
      *   3. Static analysis findings (compiler / linter errors per block)
      *   4. Fallback: no issues found, check block order
      *
-     * All text is in German to match the UI language.
+     * Written in the UI language the client reports. Note that the per-finding
+     * messages in step 3 come from Ruff, javac and SpotBugs, which only emit
+     * English — so a German hint stays a German frame around an English tool
+     * message. Translating those would mean mapping every rule id by hand.
+     *
+     * @param language the programming language, not the UI language
+     * @param locale   the UI language to write the hint in
      */
     public String generate(List<BlockMapper.BlockFinding> blockFindings, String language,
                            List<Integer> distractorBlockIndices,
-                           boolean tooFewBlocks, int studentNonDistractorCount, int correctBlockCount) {
+                           boolean tooFewBlocks, int studentNonDistractorCount, int correctBlockCount,
+                           HintLocale locale) {
+        boolean en = locale == HintLocale.EN;
         StringBuilder sb = new StringBuilder();
 
         // 1. Block-count warning — most actionable hint if student has too few blocks
         if (tooFewBlocks) {
-            sb.append("• Es wurden nur ").append(studentNonDistractorCount)
-              .append(" von ").append(correctBlockCount)
-              .append(" benoetigten Bloecken platziert. Ziehe noch fehlende Bloecke in den Loesungsbereich.\n");
+            if (en) {
+                sb.append("• Only ").append(studentNonDistractorCount)
+                  .append(" of ").append(correctBlockCount)
+                  .append(" required blocks have been placed. Drag the missing blocks into the solution area.\n");
+            } else {
+                sb.append("• Es wurden nur ").append(studentNonDistractorCount)
+                  .append(" von ").append(correctBlockCount)
+                  .append(" benötigten Blöcken platziert. Ziehe noch fehlende Blöcke in den Lösungsbereich.\n");
+            }
         }
 
         // 2. Distractor warning
         if (!distractorBlockIndices.isEmpty()) {
             if (distractorBlockIndices.size() == 1) {
-                sb.append("• Block ").append(distractorBlockIndices.get(0) + 1)
-                  .append(" gehoert nicht zur Loesung (Distraktor). Verschiebe ihn zurueck in den Quellbereich.\n");
+                String block = BlockLabels.of(distractorBlockIndices.get(0));
+                if (en) {
+                    sb.append("• Block ").append(block)
+                      .append(" does not belong in the solution (distractor). Move it back to the source area.\n");
+                } else {
+                    sb.append("• Block ").append(block)
+                      .append(" gehört nicht zur Lösung (Distraktor). Verschiebe ihn zurück in den Quellbereich.\n");
+                }
             } else {
-                sb.append("• Bloecke ");
+                sb.append(en ? "• Blocks " : "• Blöcke ");
                 for (int i = 0; i < distractorBlockIndices.size(); i++) {
                     if (i > 0) sb.append(", ");
-                    sb.append(distractorBlockIndices.get(i) + 1);
+                    sb.append(BlockLabels.of(distractorBlockIndices.get(i)));
                 }
-                sb.append(" gehoeren nicht zur Loesung (Distraktoren). Verschiebe sie zurueck in den Quellbereich.\n");
+                sb.append(en
+                        ? " do not belong in the solution (distractors). Move them back to the source area.\n"
+                        : " gehören nicht zur Lösung (Distraktoren). Verschiebe sie zurück in den Quellbereich.\n");
             }
         }
 
         // 3. Static analysis findings (already limited to max 2 by HintService)
         for (BlockMapper.BlockFinding bf : blockFindings) {
             AnalysisFinding f = bf.finding();
-            sb.append("• Block ").append(bf.blockIndex() + 1)
+            sb.append("• Block ").append(BlockLabels.of(bf.blockIndex()))
               .append(" [").append(f.ruleId()).append("]: ")
               .append(f.message()).append("\n");
         }
 
         if (sb.isEmpty()) {
-            return "Keine statischen Fehler gefunden. Pruefe die Reihenfolge deiner Bloecke.";
+            return en
+                    ? "No static errors found. Check the order of your blocks."
+                    : "Keine statischen Fehler gefunden. Prüfe die Reihenfolge deiner Blöcke.";
         }
 
         return sb.toString().trim();

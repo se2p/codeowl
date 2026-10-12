@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -42,6 +42,7 @@ public class UserRowMapper implements RowMapper<UserDTO> {
                 .verified(rs.getBoolean("is_verified"))
                 .active(rs.getBoolean("is_active"))
                 .mustChangePassword(rs.getBoolean("must_change_password"))
+                .fimUid(rs.getString("fim_uid"))
                 .createdAt(toLocalDateTime(rs.getTimestamp("created_at")))
                 .updatedAt(toLocalDateTime(rs.getTimestamp("updated_at")))
                 .build();

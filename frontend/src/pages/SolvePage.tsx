@@ -1,17 +1,25 @@
 /* eslint-env browser */
-import {useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {useNavigate, useParams} from "react-router-dom";
 import {api} from "../lib/api.ts";
 import type {Task} from "../types/models.ts";
 import {parseSplitPlan} from "../types/models.ts";
 import $ from "jquery";
 import {usePageTitle} from "../hooks/usePageTitle.ts";
+import {useHomePath} from "../hooks/useHomePath.ts";
 import { useLocation } from "react-router-dom";
 import {PersistentLogger} from "../PersistentLogger.ts";
 import { useAuth } from "../context/AuthContext.tsx";
 import { useEventTracker } from "../hooks/useEventTracker.ts";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
+import HintButton from "../components/HintButton.tsx";
+import { formatGraderFeedback } from "../lib/graderFeedback.ts";
+import { restoreSubmission } from "../lib/restoreSubmission.ts";
+import { readArrangement } from "../lib/readArrangement.ts";
+import { applyHintLabels } from "../lib/hintHighlight.ts";
+import { shuffleElementChildren } from "../lib/shuffleSource.ts";
+import { taskName } from "../lib/taskName.ts";
 
 declare global {
     interface Window {
@@ -35,13 +43,14 @@ function checkBlank(value: string, expected: string | null, mode: string): boole
 }
 
 export default function SolvePage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const location = useLocation();
     const langFromNav = location.state?.lang;
 
     const [language, setLanguage] = useState(langFromNav ?? "unknown");
     const lastFeedbackAtRef = useRef(0);
-    usePageTitle("Task Page | CodeOwl");
+    usePageTitle(t("solve.pageTitle"));
+    const homePath = useHomePath();
     const {taskId} = useParams<{ taskId: string }>();
 
     useEffect(() => {
@@ -56,6 +65,7 @@ export default function SolvePage() {
     const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(false);
     const [teacherViewEnabled, setTeacherViewEnabled] = useState(false);
+    const [teacherToolsVisible, setTeacherToolsVisible] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [sequenceOwnerId, setSequenceOwnerId] = useState<string | null>(null);
 
@@ -69,6 +79,11 @@ export default function SolvePage() {
     const lastActivityRef = useRef(Date.now());
     const activeTimeRef = useRef(0);
     const activityIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Which task the open/close pair currently considers open, and a close that has been
+    // scheduled but not yet written. Both survive a StrictMode remount, which is the point —
+    // see the task_opened effect below.
+    const openTaskRef = useRef<string | null>(null);
+    const pendingCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [previousCorrectCount, setPreviousCorrectCount] = useState(0);
     const [, setBacktrackCount] = useState(0);
     const backtrackCountRef = useRef(0);
@@ -83,6 +98,48 @@ export default function SolvePage() {
     const [hintError, setHintError] = useState<string | null>(null);
     const [hintsUnlocked, setHintsUnlocked] = useState(false);
     const [hintsEnabled, setHintsEnabled] = useState(true);
+    // null = unlimited (no budget configured on the worksheet)
+    const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
+    const [creditsPerTask, setCreditsPerTask] = useState<number | null>(null);
+    // A previously solved arrangement, restored into the puzzle on open.
+    const [solvedPreviously, setSolvedPreviously] = useState(false);
+    /** Unfinished work was restored, so the student is offered a way to drop it. */
+    const [hasSavedProgress, setHasSavedProgress] = useState(false);
+    /**
+     * The task is solved, so grading it again would say nothing and the check button is closed
+     * off until the student asks for another go with Redo.
+     *
+     * Deliberately not solvedPreviously, which stays true through a Redo so the Redo button
+     * keeps its place -- and deliberately not showCompletionBanner, which the student can
+     * dismiss. This is the one signal that means "solved, right now".
+     */
+    const [solutionLocked, setSolutionLocked] = useState(false);
+    // False once a worksheet deadline (plus grace) has passed: the task can
+    // still be read, but not worked on.
+    const [canSolve, setCanSolve] = useState(true);
+    const restoredRef = useRef(false);
+    // When the restored solution was first solved, reported with the redo event.
+    const solvedAtRef = useRef<string | null>(null);
+
+    // ── Autosave of work in progress, and the research trail of how it got there ──
+    // Both are driven by the same widget hook (see the addLogEntry wrapper below): one read
+    // of the DOM, two destinations. The autosave is debounced because a drag produces one
+    // change and a student produces many; the research buffer is flushed in batches because
+    // useEventTracker posts one request per call and a move-by-move stream would be one
+    // request every few seconds, per student.
+    const progressTimerRef = useRef<number | null>(null);
+    const progressPendingRef = useRef(false);
+    const moveBufferRef = useRef<Array<Record<string, unknown>>>([]);
+    const moveBatchStartRef = useRef<number>(0);
+    const moveFlushTimerRef = useRef<number | null>(null);
+    /** Set by the widget effect; lets "start over" cancel pending saves it cannot otherwise see. */
+    const discardProgressRef = useRef<(() => void) | null>(null);
+    /**
+     * Set by the widget effect; lets the Feedback handler empty the move buffer before it logs
+     * a verdict. Same reason discardProgressRef exists — the buffer lives in a closure the
+     * handler has no other way to reach.
+     */
+    const flushMovesRef = useRef<(() => void) | null>(null);
     const hintShownAtRef = useRef<number>(0);
     const lastHintLevelRef = useRef<number>(0);
     const correctCountBeforeHintRef = useRef<number | null>(null);
@@ -122,12 +179,25 @@ export default function SolvePage() {
     const movesSinceFeedbackRef = useRef(0);
     const correctUndoCountRef = useRef(0);
 
-    // Fetch hint config (teacher toggle)
-    useEffect(() => {
+    // Fetch hint config: teacher toggle plus this student's remaining credits.
+    const refreshHintConfig = useCallback(() => {
         if (!taskId) return;
         api.get(`/hints/${taskId}/config`).then(({ data }) => {
             setHintsEnabled(data.hintsEnabled ?? true);
-        }).catch(() => { /* default: enabled */ });
+            setCreditsPerTask(data.creditsPerTask ?? null);
+            setCreditsRemaining(data.creditsRemaining ?? null);
+        }).catch(() => { /* default: enabled, unlimited */ });
+    }, [taskId]);
+
+    useEffect(() => { refreshHintConfig(); }, [refreshHintConfig]);
+
+    // Whether the worksheet this task belongs to is still open for this user.
+    // Advisory only — the services that record solving re-check it.
+    useEffect(() => {
+        if (!taskId) return;
+        api.get(`/tasks/${taskId}/access`)
+            .then(({ data }) => setCanSolve(data?.canSolve !== false))
+            .catch(() => setCanSolve(true));
     }, [taskId]);
 
     // Role-based teacher view: show toggle for owners and admins
@@ -205,6 +275,7 @@ export default function SolvePage() {
                     statement: String(data.statement ?? ""),
                     solution: String(data.solution ?? ""),
                     tierLevel: Number(data.tierLevel ?? 0),
+                    title: data.title ?? null,
                     cyclomaticComplexity: Number(data.cyclomaticComplexity ?? 0),
                     sequenceId: String(data.sequenceId ?? ""),
                     programmingLanguage: String(lang),
@@ -219,7 +290,7 @@ export default function SolvePage() {
                 setTask(t);
             })
             .catch((err: any) => {
-                const msg = err?.response?.data?.message || err?.message || "Error during API-Request";
+                const msg = err?.response?.data?.message || err?.message || t("solve.apiError");
                 PersistentLogger.logWithContext("SolvePage", "error", "Task fetch failed:", msg);
                 setError(msg);
             })
@@ -292,6 +363,10 @@ export default function SolvePage() {
         distractorPlacedAtRef.current = new Map();
         lastFeedbackBeforeRemovalRef.current = false;
         lastHintBeforeRemovalRef.current = false;
+        moveBufferRef.current = [];
+        moveBatchStartRef.current = 0;
+        setHasSavedProgress(false);
+        setSolutionLocked(false);
         setPreviousCorrectCount(0);
         setFeedbackHTML("");
         setHintText(null);
@@ -301,13 +376,31 @@ export default function SolvePage() {
     }, [taskId]);
 
     // Log task_opened on mount and task_closed on unmount (AP10)
+    //
+    // The close is deferred by a tick rather than written in the cleanup, because a cleanup is
+    // not proof the student left. StrictMode mounts this effect, tears it down and mounts it
+    // again in development, and writing the close synchronously turned every single task open
+    // into task_opened -> task_closed(total_time_ms: 0) -> task_opened. That was 47% of all
+    // task_closed rows by the time anyone noticed, and it looked like real data.
+    //
+    // So: on teardown, schedule the close. If the same task mounts straight back, cancel it and
+    // carry on with the session already in progress -- no second task_opened, no phantom close,
+    // and the timings keep running from the original open. A real navigation has nothing to
+    // cancel it, so the close lands a tick later as it should.
     useEffect(() => {
         if (!taskId) return;
-        startTimeRef.current = Date.now();
-        activeTimeRef.current = 0;
-        lastActivityRef.current = Date.now();
 
-        logEvent(taskId, "task_opened", {}, task?.sequenceId, task?.tierLevel);
+        const resuming = pendingCloseRef.current !== null && openTaskRef.current === taskId;
+        if (resuming) {
+            clearTimeout(pendingCloseRef.current!);
+            pendingCloseRef.current = null;
+        } else {
+            startTimeRef.current = Date.now();
+            activeTimeRef.current = 0;
+            lastActivityRef.current = Date.now();
+            openTaskRef.current = taskId;
+            logEvent(taskId, "task_opened", {}, task?.sequenceId, task?.tierLevel);
+        }
 
         // Activity tracking (AP11): track active time
         const INACTIVITY_THRESHOLD = 90_000; // 90 seconds
@@ -347,7 +440,21 @@ export default function SolvePage() {
         window.addEventListener("beforeunload", handleBeforeUnload);
 
         return () => {
-            handleBeforeUnload();
+            // Deferred, so an immediate remount of the same task can cancel it. Anything that
+            // really ends the visit -- navigating away, unmounting for good -- leaves nothing
+            // to cancel it and the close is written on the next tick.
+            //
+            // Both refs are checked before being cleared: moving from task A to task B runs
+            // A's cleanup, then B's effect, and only then A's timer. Clearing unconditionally
+            // would wipe the state B had just set for itself.
+            const closingTaskId = taskId;
+            const timer = setTimeout(() => {
+                if (pendingCloseRef.current === timer) pendingCloseRef.current = null;
+                if (openTaskRef.current === closingTaskId) openTaskRef.current = null;
+                handleBeforeUnload();
+            }, 0);
+            pendingCloseRef.current = timer;
+
             window.removeEventListener("mousemove", handleActivity);
             window.removeEventListener("keydown", handleActivity);
             window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -357,6 +464,15 @@ export default function SolvePage() {
 
     const widgetRef = useRef<any>(null);
     const [feedbackHTML, setFeedbackHTML] = useState("");
+
+    // Grading produces already-resolved strings, so text on screen cannot
+    // retranslate itself when the language changes. Clear it rather than leave a
+    // German page showing an English verdict; the next grading refills it.
+    useEffect(() => {
+        const onLanguageChanged = () => setFeedbackHTML("");
+        i18n.on("languageChanged", onLanguageChanged);
+        return () => { i18n.off("languageChanged", onLanguageChanged); };
+    }, [i18n]);
     useEffect(() => {
         if (!task?.solution || !window.ParsonsWidget) return;
 
@@ -369,15 +485,15 @@ export default function SolvePage() {
                 : 0,
             programmingLang: task.programmingLanguage?.toLowerCase() ?? "",
 
-            // Fix: Initialisiere i18n direkt im Konstruktor
-            i18n: {
-                en: {
-                    no_matching: t("solve.no_matching") || "No matching line found.",
-                    one_item_error: t("solve.one_item_error") || "Solution should have more than one item.",
-                    trash_label: t("solve.source") || "Available Blocks",
-                    solution_label: t("solve.target") || "Your Solution",
-                }
-            },
+            // Empty strings suppress the library's own column labels
+            // (parsons.js:1805 only emits the <p> when these are truthy). They are
+            // baked into the DOM at construction time and this effect does not
+            // re-run on a language change, so they would be stuck in whichever
+            // language was active when the task loaded. The <h6> headings that
+            // SolvePage renders above each column say the same thing and, being
+            // React, follow the language switch.
+            trash_label: "",
+            solution_label: "",
 
             grader: function CustomLineBasedGrader(p: any) {
                 const base = new window.ParsonsWidget._graders.LineBasedGrader(p);
@@ -397,7 +513,7 @@ export default function SolvePage() {
                                 .addClass("incorrectPosition")
                                 .css("border", "1px solid red")
                                 .css("background-color", "#ffbaba")
-                                .attr("title", "Indentation matters in Python — this line is incorrect.");
+                                .attr("title", t("solve.indentationWarning"));
                         });
                     }
 
@@ -415,18 +531,75 @@ export default function SolvePage() {
         if (task.distractors) {
             codeForWidget = codeForWidget + "\n" + task.distractors;
         }
-        // Fix: Zusätzliche Absicherung für die translations Property vor dem Init
-        if (!widget.translations) {
-            widget.translations = {
-                no_matching: "No matching line found.",
-                trash_label: "Available Blocks",
-                solution_label: "Your Solution"
-            };
+        // The constructor always populates `translations` (falling back to its
+        // English table), so it is never missing. Its entries are functions, and
+        // they are what the grader writes into the feedback box.
+        //
+        // Only these four are reachable here: order/lines_too_many/lines_missing
+        // come from LineBasedGrader, which is the grader below, and no_matching
+        // from the widget's own indentation check. The remaining entries belong
+        // to graders this app never instantiates (LanguageTranslationGrader,
+        // UnitTestGrader, VariableCheckGrader), so translating them would only
+        // create the appearance of coverage.
+        if (widget.translations) {
+            //
+            // These call i18n.t rather than the t from useTranslation. This effect
+            // runs once per task, so a captured t would stay bound to the language
+            // that was active then and keep answering in it after a switch;
+            // i18n.t resolves against the instance's current language every call.
+            widget.translations.no_matching = (lineNro: number) =>
+                i18n.t("solve.no_matching", { line: lineNro });
+            widget.translations.order = () => i18n.t("solve.grader_order");
+            widget.translations.lines_too_many = () => i18n.t("solve.grader_lines_too_many");
+            widget.translations.lines_missing = () => i18n.t("solve.grader_lines_missing");
+            // Not part of upstream js-parsons: the Python indent message was
+            // hardcoded in our vendored copy and is now routed through here too.
+            widget.translations.indent_python = () => i18n.t("solve.grader_indent_python");
         }
 
         widget.init(codeForWidget);
         widget.shuffleLines();
         widgetRef.current = widget;
+
+        // If this student already solved the task, put their arrangement back
+        // rather than handing them a reshuffled puzzle. Fire-and-forget: a failed
+        // lookup simply means they start fresh, which is the old behaviour.
+        // Anonymous visitors get 204, since there is nobody to have stored work.
+        restoredRef.current = false;
+        api.get(`/tasks/${task.id}/submission`)
+            .then(({ data }) => {
+                if (!data?.blockOrder?.length) return;
+                const { restored, placed } = restoreSubmission(
+                    document.getElementById("ul-jsparsons-source"),
+                    document.getElementById("ul-jsparsons-target"),
+                    data.blockOrder,
+                    data.indentLevels,
+                    widget.options?.x_indent || 50,
+                );
+                // restoreSubmission only sets margin-left, which is how indentation is drawn.
+                // Grading reads line.indent on the widget's own model, which init left at 0, so
+                // without this a restored solution is graded as fully unindented until the
+                // student drags something -- a correct solution marked wrong.
+                for (const { id, indent } of placed) {
+                    const line = widget.getLineById?.(id);
+                    if (line) line.indent = widget.options?.can_indent ? indent : 0;
+                }
+                if (restored > 0) {
+                    restoredRef.current = true;
+                    solvedAtRef.current = data.solvedAt ?? null;
+                    // Only a solved arrangement makes the task solved. An in-progress restore
+                    // that claimed otherwise would offer Redo for work not yet finished, and
+                    // tell the student they had already completed it.
+                    if (data.solved) {
+                        setSolvedPreviously(true);
+                        // Reopened already solved: what is on screen is the arrangement that
+                        // was graded correct, so there is nothing to check until they redo it.
+                        setSolutionLocked(true);
+                    }
+                    else setHasSavedProgress(true);
+                }
+            })
+            .catch(() => { /* nothing stored, or not logged in */ });
 
         // AP15: Populate distractor text set for analytics tracking
         if (task.distractors) {
@@ -445,6 +618,93 @@ export default function SolvePage() {
         }
         distractorsInSolutionRef.current = new Set();
         distractorPlacedAtRef.current = new Map();
+
+        // ── Autosave + research trail ───────────────────────────────────────
+        // parsons.js funnels every mutation through addLogEntry -- drag, click-to-move and
+        // keyboard alike -- and updateIndent runs in the same handlers immediately before it,
+        // so one wrapper catches reorders and indents both. Wrapped on the instance, shadowing
+        // the prototype, exactly as getFeedback is wrapped just below.
+        const PROGRESS_DEBOUNCE_MS = 1500;
+        const MOVE_FLUSH_MS = 10_000;
+        const MOVE_BATCH_MAX = 25;
+        const MOVE_ACTIONS = new Set(["moveOutput", "addOutput", "removeOutput", "moveInput"]);
+
+        const currentArrangement = () =>
+            readArrangement(
+                document.getElementById(`ul-${widget.options.sortableId}`),
+                widget.options?.x_indent || 50,
+            );
+
+        const saveProgressNow = () => {
+            if (progressTimerRef.current !== null) {
+                window.clearTimeout(progressTimerRef.current);
+                progressTimerRef.current = null;
+            }
+            if (!progressPendingRef.current || !task?.id) return;
+            progressPendingRef.current = false;
+            // Fire-and-forget, like the solved save: losing an autosave costs the student the
+            // last few seconds of work, and blocking the page on it would cost them more.
+            api.put(`/tasks/${task.id}/submission/progress`, currentArrangement())
+                .catch(() => { /* works fine without persistence */ });
+        };
+
+        const flushMoves = () => {
+            if (moveFlushTimerRef.current !== null) {
+                window.clearTimeout(moveFlushTimerRef.current);
+                moveFlushTimerRef.current = null;
+            }
+            const moves = moveBufferRef.current;
+            if (moves.length === 0 || !task?.id) return;
+            moveBufferRef.current = [];
+            logEvent(task.id, "arrangement_changed", {
+                batchStartMs: moveBatchStartRef.current,
+                moves,
+            }, task.sequenceId, task.tierLevel);
+            moveBatchStartRef.current = 0;
+        };
+        flushMovesRef.current = flushMoves;
+
+        const originalAddLogEntry = widget.addLogEntry.bind(widget);
+        widget.addLogEntry = function (entry: any, isMove?: boolean) {
+            const result = originalAddLogEntry(entry, isMove);
+            try {
+                if (!entry || !MOVE_ACTIONS.has(entry.type)) return result;
+
+                const now = Date.now();
+                if (moveBufferRef.current.length === 0) moveBatchStartRef.current = now;
+
+                const moved = entry.target ? document.getElementById(entry.target) : null;
+                moveBufferRef.current.push({
+                    atMs: now - moveBatchStartRef.current,
+                    action: entry.type,
+                    blockText: moved?.textContent?.trim() ?? "",
+                    ...currentArrangement(),
+                });
+
+                if (moveBufferRef.current.length >= MOVE_BATCH_MAX) {
+                    flushMoves();
+                } else if (moveFlushTimerRef.current === null) {
+                    moveFlushTimerRef.current = window.setTimeout(flushMoves, MOVE_FLUSH_MS);
+                }
+
+                progressPendingRef.current = true;
+                if (progressTimerRef.current !== null) window.clearTimeout(progressTimerRef.current);
+                progressTimerRef.current = window.setTimeout(saveProgressNow, PROGRESS_DEBOUNCE_MS);
+            } catch {
+                // Recording how the student worked must never break the widget they work in.
+            }
+            return result;
+        };
+
+        discardProgressRef.current = () => {
+            if (progressTimerRef.current !== null) {
+                window.clearTimeout(progressTimerRef.current);
+                progressTimerRef.current = null;
+            }
+            progressPendingRef.current = false;
+            moveBufferRef.current = [];
+            moveBatchStartRef.current = 0;
+        };
 
         const originalGetFeedback = widget.getFeedback.bind(widget);
         widget.getFeedback = function () {
@@ -756,6 +1016,19 @@ export default function SolvePage() {
         }
 
         return () => {
+            // Flush before the timers die, or the last edit before leaving the page is exactly
+            // the one that is lost. In-app navigation runs this synchronously and the requests
+            // complete; a real tab close may kill them, which is a known limit shared with the
+            // task_closed event and not something beforeunload would fix.
+            saveProgressNow();
+            flushMoves();
+            if (moveFlushTimerRef.current !== null) {
+                window.clearTimeout(moveFlushTimerRef.current);
+                moveFlushTimerRef.current = null;
+            }
+            discardProgressRef.current = null;
+            flushMovesRef.current = null;
+            observer.disconnect();
             document.removeEventListener("input", gapClearHandler);
             widgetRef.current = null;
         };
@@ -806,21 +1079,23 @@ export default function SolvePage() {
         const sortableUl = document.getElementById(`ul-${widget.options.sortableId}`);
         if (!sortableUl) return;
 
-        const blocks = sortableUl.querySelectorAll("li");
-        const labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-        affectedBlockIndices.forEach((blockIdx, i) => {
-            if (blockIdx >= 0 && blockIdx < blocks.length) {
-                blocks[blockIdx].classList.add("block-hint-error");
-                blocks[blockIdx].setAttribute("data-hint-label", labels[i] || String(i + 1));
-            }
-        });
+        applyHintLabels(sortableUl, affectedBlockIndices);
     }
 
     async function requestHint(hintLevel: 1 | 2) {
         if (!task?.id) return;
         const widget = widgetRef.current;
         if (!widget) return;
+
+        // Same reason the Feedback handler flushes: a hint is generated from the arrangement as
+        // it stands right now, and hint_usage stores that arrangement server-side. If the moves
+        // that built it are still buffered, the trail shows the hint being asked for on a state
+        // the student had already moved past -- and the moves that produced it arriving
+        // afterwards, as though they were a reaction to the hint rather than the setup for it.
+        //
+        // Flushed before the request, not just before the log line, so the record holds even if
+        // the hint call fails or is refused for want of credits.
+        flushMovesRef.current?.();
 
         setHintLoading(true);
         setHintError(null);
@@ -837,15 +1112,10 @@ export default function SolvePage() {
             const blockOrder = domBlocks.map(
                 (li) => (li as HTMLElement).textContent?.trim() ?? ""
             );
-            // Read indent level from CSS margin-left (x_indent default = 50px per level)
-            const xIndent = widget.options?.x_indent || 50;
-            const indentLevels = domBlocks.map((li) => {
-                const ml = parseFloat((li as HTMLElement).style.marginLeft) || 0;
-                return Math.round(ml / xIndent);
-            });
+            const { indentLevels } = readArrangement(sortableUl, widget.options?.x_indent || 50);
 
             if (blockOrder.length === 0) {
-                setHintError("Ziehe zuerst einige Bloecke in den Loesungsbereich.");
+                setHintError(t("solve.hintDragFirst"));
                 return;
             }
 
@@ -853,6 +1123,9 @@ export default function SolvePage() {
                 blockOrder,
                 indentLevels,
                 hintLevel,
+                // Hint text is written server-side, so the backend has to be told
+                // which language the UI is currently in.
+                locale: i18n.language,
             });
 
             const data = response.data;
@@ -881,19 +1154,47 @@ export default function SolvePage() {
                 affectedBlocks: data.affectedBlocks,
             }, task.sequenceId, task.tierLevel);
 
+            // The hint was charged server-side; re-read the budget rather than
+            // guessing the cost here, so the two can never drift apart.
+            refreshHintConfig();
+
         } catch (err: any) {
-            const msg = err?.response?.data?.hintText || err?.response?.data?.message || err?.message || "Hint konnte nicht geladen werden.";
+            // A 403 here means the server refused (hints disabled, or no credits
+            // left). Re-read the config so the buttons reflect that immediately.
+            if (err?.response?.status === 403) refreshHintConfig();
+            const msg = err?.response?.data?.hintText || err?.response?.data?.message || err?.message || t("solve.hintLoadFailed");
             setHintError(msg);
         } finally {
             setHintLoading(false);
         }
     }
 
+    // Level 2 costs two credits, level 1 costs one; a null budget is unlimited.
+    const hintCost = (level: 1 | 2) => (level === 2 ? 2 : 1);
+    const canAfford = (level: 1 | 2) =>
+        creditsRemaining === null || creditsRemaining >= hintCost(level);
+
+    /** Tooltip for a hint button, explaining whichever thing is blocking it. */
+    const hintTooltip = (level: 1 | 2, enabledTitle: string) => {
+        // Credits first: running out is permanent for this task, while "click
+        // Feedback first" is a step the student can still take. Reporting the
+        // transient blocker would send them off to do something that cannot help.
+        if (!canAfford(level)) {
+            return creditsRemaining === 0
+                ? t("solve.creditsExhausted")
+                : t("solve.creditsInsufficient", { cost: hintCost(level), remaining: creditsRemaining });
+        }
+        if (!hintsUnlocked) return t("solve.feedbackFirst");
+        return enabledTitle;
+    };
+
     if (!taskId) {
         return (
             <div className="container py-4">
-                <div className="alert alert-warning">No task Id specified.</div>
-                <button className="btn btn-link" onClick={() => navigate("/")}>{t("solve.home")}</button>
+                <div className="alert alert-warning">{t("solve.noTaskId")}</div>
+                <button className="btn btn-link" onClick={() => navigate(homePath)}>
+                    ← {t("solve.home")}
+                </button>
             </div>
         );
     }
@@ -902,20 +1203,27 @@ export default function SolvePage() {
 
         <div className="container-fluid py-4" style={{maxWidth: "90%"}}>
             <div className="mb-3 d-flex gap-2">
+                <button className="btn btn-link" onClick={() => navigate(homePath)}>
+                    ← {t("solve.home")}
+                </button>
                 <button
                     className="btn btn-link"
                     onClick={() => {
-                        if (!sequenceId) return navigate("/");
+                        // A task reached without a sequence has nothing to go back
+                        // to, so fall through to wherever Home would lead.
+                        if (!sequenceId) return navigate(homePath);
 
                         navigate(`/sequence/${sequenceId}`, {
-                            state: { fromWorksheet: location.state?.fromWorksheet },
+                            state: {
+                                fromWorksheet: location.state?.fromWorksheet,
+                                fromClass: location.state?.fromClass,
+                            },
                         });
                     }}
                     disabled={!sequenceId}
                 >
                     ← {t("solve.backToSequence")}
                 </button>
-                <button className="btn btn-link" onClick={() => navigate("/")}>{t("solve.home")}</button>
             </div>
             {canToggleTeacherView && (
                 <div className="d-flex justify-content-end mb-3">
@@ -938,20 +1246,20 @@ export default function SolvePage() {
                         boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                     }}
                 >
-                    👩‍🏫 Teacher Mode — Model solutions are visible on the bottom right
+                    👩‍🏫 {t("solve.teacherBanner")}
                 </div>
             )}
 
             {loading && (
                 <div className="alert alert-info d-flex align-items-center gap-2">
                     <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"/>
-                    <div>Loading Task…</div>
+                    <div>{t("solve.loadingTask")}</div>
                 </div>
             )}
             {error && (
                 <div className="alert alert-danger d-flex align-items-start gap-2">
                     <span>⚠️</span>
-                    <div><strong>Error:</strong> {error}</div>
+                    <div><strong>{t("solve.errorLabel")}</strong> {error}</div>
                 </div>
             )}
             <button
@@ -959,19 +1267,20 @@ export default function SolvePage() {
                     copied ? "btn-success" : "btn-outline-secondary"
                 }`}
                 onClick={handleCopyLink}
-                title="Copies this task link"
+                title={t("solve.copyLinkTitle")}
             >
                 <i className="bi bi-link-45deg"></i>
-                {copied ? "✓ Copied!" : "Share Task"}
+                {copied ? `✓ ${t("solve.copied")}` : t("solve.shareTask")}
             </button>
             {task && (
                 <>
                     <div className="card mb-3">
                         <div className="card-body">
-                            <b>Task:</b>
+                            <b>{t("solve.taskLabel")}</b>
                             <div className="mt-2" style={{whiteSpace: "pre-wrap"}}>{task.statement}</div>
-                            <div className="text-muted mt-2">Tier {task.tierLevel} ·
-                                Language {task.programmingLanguage}</div>
+                            <div className="text-muted mt-2">
+                                {t("solve.tierAndLanguage", { name: taskName(task, t), language: task.programmingLanguage })}
+                            </div>
                             <div className="mt-2"></div>
                         </div>
                     </div>
@@ -981,6 +1290,13 @@ export default function SolvePage() {
                         <div className="alert alert-info d-flex align-items-center gap-2 mb-3 py-2" role="alert">
                             <span style={{ fontSize: "1.2rem" }}>&#x1F4D6;</span>
                             <span>{t("solve.contextBanner")}</span>
+                        </div>
+                    )}
+
+                    {!canSolve && (
+                        <div className="alert alert-secondary d-flex align-items-center gap-2 mb-3 py-2" role="alert">
+                            <span style={{ fontSize: "1.2rem" }}>&#x1F512;</span>
+                            <span>{t("solve.closedBanner")}</span>
                         </div>
                     )}
 
@@ -1008,7 +1324,7 @@ export default function SolvePage() {
                                 fontSize: "0.9rem",
                             }}
                         >
-                            <h6 className="fw-bold mb-2">Source</h6>
+                            <h6 className="fw-bold mb-2">{t("solve.sourceHeading")}</h6>
                             <div
                                 id="jsparsons-source"
                                 className="sortable-code"
@@ -1036,7 +1352,7 @@ export default function SolvePage() {
                                 fontSize: "0.9rem",
                             }}
                         >
-                            <h6 className="fw-bold mb-2">Construct your solution here</h6>
+                            <h6 className="fw-bold mb-2">{t("solve.targetHeading")}</h6>
 
                             {/* AP22: Context before puzzle */}
                             {contextBefore.length > 0 && (
@@ -1110,7 +1426,7 @@ export default function SolvePage() {
 
                     <div className="mt-3 d-flex gap-2 flex-wrap align-items-center">
                         {/* AP17: Interaction mode toggle */}
-                        <div className="btn-group btn-group-sm me-2" role="group" aria-label="Interaction mode">
+                        <div className="btn-group btn-group-sm me-2" role="group" aria-label={t("solve.interactionMode")}>
                             <button
                                 type="button"
                                 className={`btn ${interactionMode === "drag" ? "btn-primary" : "btn-outline-secondary"}`}
@@ -1118,9 +1434,9 @@ export default function SolvePage() {
                                     setInteractionMode("drag");
                                     try { localStorage.setItem("codeowl_interaction_mode", "drag"); } catch {}
                                 }}
-                                title="Drag and drop blocks to reorder"
+                                title={t("solve.dragModeTitle")}
                             >
-                                &#x2725; Drag
+                                &#x2725; {t("solve.dragMode")}
                             </button>
                             <button
                                 type="button"
@@ -1129,32 +1445,48 @@ export default function SolvePage() {
                                     setInteractionMode("click");
                                     try { localStorage.setItem("codeowl_interaction_mode", "click"); } catch {}
                                 }}
-                                title="Click a block to select, then click where to place it. Arrow keys to reorder, Tab to move between zones."
+                                title={t("solve.clickModeTitle")}
                             >
-                                &#x1F446; Click
+                                &#x1F446; {t("solve.clickMode")}
                             </button>
                         </div>
                         <button
                             className="btn btn-outline-secondary"
+                            disabled={!canSolve}
                             onClick={(e) => {
                                 e.preventDefault();
-                                widgetRef.current?.shuffleLines();
-                                // Re-apply click-to-move after shuffle rebuilds DOM
+
+                                // Only the blocks still in the source area are
+                                // reordered; the solution the student has built
+                                // stays exactly as it is.
+                                const sourceUl = document.getElementById("ul-jsparsons-source");
+                                const moved = shuffleElementChildren(sourceUl);
+                                if (moved === 0) return;
+
+                                // jQuery UI caches each item's position for dragging,
+                                // so it has to recompute them after the nodes move.
+                                try { ($(sourceUl as HTMLElement) as any).sortable("refresh"); } catch { /* not sortable */ }
+
+                                // The nodes themselves are reused, so click-to-move
+                                // handlers survive; re-binding is cheap insurance
+                                // against any selection state pointing at a moved node.
                                 if (interactionMode === "click" && widgetRef.current) {
                                     try {
                                         widgetRef.current.disableClickToMove();
                                         widgetRef.current.enableClickToMove();
                                     } catch {}
                                 }
-                                setFeedbackHTML("");
-                                clearHintHighlights("feedback_clicked");
-                                setHintText(null);
-                                setHintExplanation(null);
-                                setHintError(null);
-                                // Log task_reset event (AP11)
+
+                                // Feedback and hints are deliberately left alone: they
+                                // describe the solution area, which this no longer
+                                // touches, so clearing them would discard information
+                                // that is still accurate.
+
                                 try {
                                     if (task?.id) {
-                                        logEvent(task.id, "task_reset", {
+                                        // Not task_reset any more — nothing is reset.
+                                        logEvent(task.id, "source_shuffled", {
+                                            blocksShuffled: moved,
                                             attemptCount: attemptCountRef.current,
                                             feedbackCount: feedbackCountRef.current,
                                             activeTimeMs: activeTimeRef.current,
@@ -1164,10 +1496,125 @@ export default function SolvePage() {
                                 } catch { /* silent */ }
                             }}
                         >
-                            Shuffle lines
+                            {t("solve.shuffleLines")}
                         </button>
+
+                        {/*
+                          * Offered only while unfinished work has been restored. Resuming is
+                          * silent, so this is the way back out for a student who would rather
+                          * start clean than undo their way there -- and it throws the stored
+                          * arrangement away, or the next visit would simply restore it again.
+                          */}
+                        {hasSavedProgress && !solvedPreviously && canSolve && (
+                            <button
+                                className="btn btn-outline-secondary"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    const widget = widgetRef.current;
+                                    if (!widget) return;
+
+                                    // Drop the pending autosave first: it would otherwise fire
+                                    // after the delete and store the arrangement right back.
+                                    discardProgressRef.current?.();
+
+                                    widget.shuffleLines();
+                                    setHasSavedProgress(false);
+                                    restoredRef.current = false;
+                                    isCompleteRef.current = false;
+                                    setSolutionLocked(false);
+                                    setFeedbackHTML("");
+                                    clearHintHighlights("new_hint");
+                                    setHintText(null);
+                                    setHintExplanation(null);
+                                    setHintError(null);
+                                    startTimeRef.current = Date.now();
+                                    attemptCountRef.current = 0;
+
+                                    if (interactionMode === "click") {
+                                        try {
+                                            widget.disableClickToMove();
+                                            widget.enableClickToMove();
+                                        } catch { /* not enabled */ }
+                                    }
+
+                                    if (task?.id) {
+                                        api.delete(`/tasks/${task.id}/submission`)
+                                            .catch(() => { /* nothing stored, or not logged in */ });
+                                    }
+                                }}
+                            >
+                                {t("solve.startOver")}
+                            </button>
+                        )}
+
+                        {/*
+                          * Offered only once the task has been solved, since that is
+                          * the only time the puzzle comes back already filled in.
+                          * The stored solution is deliberately left in place: an
+                          * abandoned redo should not cost the student their work.
+                          */}
+                        {solvedPreviously && canSolve && (
+                            <button
+                                className="btn btn-outline-primary"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    const widget = widgetRef.current;
+                                    if (!widget) return;
+
+                                    // Deal the task out again from scratch.
+                                    widget.shuffleLines();
+                                    isCompleteRef.current = false;
+                                    setSolutionLocked(false);
+                                    setShowCompletionBanner(false);
+                                    setShowSelfReport(false);
+                                    setFeedbackHTML("");
+                                    clearHintHighlights("new_hint");
+                                    setHintText(null);
+                                    setHintExplanation(null);
+                                    setHintError(null);
+                                    setHintsUnlocked(false);
+                                    startTimeRef.current = Date.now();
+                                    attemptCountRef.current = 0;
+
+                                    if (interactionMode === "click") {
+                                        try {
+                                            widget.disableClickToMove();
+                                            widget.enableClickToMove();
+                                        } catch { /* not enabled */ }
+                                    }
+
+                                    try {
+                                        if (task?.id) {
+                                            logEvent(task.id, "task_redo_started", {
+                                                previouslySolvedAt: solvedAtRef.current,
+                                                hintsUsedBefore: creditsPerTask !== null && creditsRemaining !== null
+                                                    ? creditsPerTask - creditsRemaining
+                                                    : null,
+                                            }, task.sequenceId, task.tierLevel);
+                                        }
+                                    } catch { /* silent */ }
+                                }}
+                            >
+                                {t("solve.redo")}
+                            </button>
+                        )}
+
+                        {/*
+                          * The title lives on a wrapper, not on the button. A disabled control
+                          * receives no pointer events, so its own tooltip never fires -- and
+                          * the hover does not reach the parent either while the button is
+                          * still in the way, which is what pointerEvents: none clears. This is
+                          * Bootstrap's own advice for tooltips on disabled buttons, done with
+                          * a plain title because that is what the rest of the app uses.
+                          */}
+                        <span
+                            className="d-inline-block"
+                            title={solutionLocked ? (t("solve.alreadySolvedHint") as string) : undefined}
+                        >
                         <button
                             className="btn btn-primary"
+                            disabled={!canSolve || solutionLocked}
+                            style={solutionLocked ? { pointerEvents: "none" } : undefined}
                             onClick={(e) => {
                                 e.preventDefault();
                                 const widget = widgetRef.current;
@@ -1179,9 +1626,12 @@ export default function SolvePage() {
                                 setHintExplanation(null);
                                 setHintError(null);
 
-                                // Run js-parsons grading
+                                // Run js-parsons grading. getFeedback returns an
+                                // array of messages for this grader, never a bare
+                                // string — testing for a string dropped every
+                                // message on the floor.
                                 const fb = widget.getFeedback?.();
-                                if (typeof fb === "string") setFeedbackHTML(fb);
+                                setFeedbackHTML(formatGraderFeedback(fb));
 
                                 // Unlock hints after feedback
                                 setHintsUnlocked(true);
@@ -1239,6 +1689,22 @@ export default function SolvePage() {
                                 feedbackCountRef.current += 1;
                                 const newFeedbackCount = feedbackCountRef.current;
                                 setFeedbackCount(newFeedbackCount);
+
+                                // Write the buffered moves out before any verdict is logged.
+                                //
+                                // The buffer is flushed on a 10s timer, at 25 moves, or when the
+                                // page is left -- none of which is "the student asked whether
+                                // they are done". Without this the moves that produced the
+                                // solution were still sitting in the buffer when task_correct
+                                // went out, so the trail read: an arrangement_changed ending on
+                                // a wrong arrangement, then task_correct, then an
+                                // arrangement_changed arriving up to ten seconds *after* the
+                                // task was solved, as if the student had kept working. They had
+                                // not; the batch had simply not been sent yet.
+                                //
+                                // Flushing here keeps the order causal: every move that led to
+                                // a verdict is recorded before the verdict it led to.
+                                flushMovesRef.current?.();
 
                                 // Time since last feedback (AP11)
                                 const now = Date.now();
@@ -1421,6 +1887,16 @@ export default function SolvePage() {
                                 if (allCorrect) {
                                     setShowSelfReport(true);
                                     setShowCompletionBanner(true); // AP18
+                                    setSolvedPreviously(true);
+                                    setSolutionLocked(true);
+
+                                    // Keep the arrangement so reopening the task shows
+                                    // their work. Fire-and-forget: failing to store it
+                                    // must not take away having solved it.
+                                    api.put(
+                                        `/tasks/${task.id}/submission`,
+                                        readArrangement(sortableUl, widget.options?.x_indent || 50),
+                                    ).catch(() => { /* works fine without persistence */ });
                                 }
 
                                 // Send feedback-log to legacy endpoint (fire-and-forget)
@@ -1443,44 +1919,41 @@ export default function SolvePage() {
                                 }
                             }}
                         >
-                            Feedback
+                            {t("solve.feedback")}
                         </button>
+                        </span>
 
                         {/* AP13: Hint buttons (only if teacher enabled hints) */}
-                        {hintsEnabled && (
+                        {hintsEnabled && canSolve && (
                         <>
-                        <button
+                        <HintButton
+                            level={1}
                             className="btn btn-outline-info"
-                            disabled={!hintsUnlocked || hintLoading || isCompleteRef.current}
-                            onClick={async (e) => {
-                                e.preventDefault();
-                                await requestHint(1);
-                            }}
-                            title={hintsUnlocked ? "Zeigt dir, welche Bloecke problematisch sind" : "Klicke zuerst auf Feedback"}
-                        >
-                            {hintLoading ? (
-                                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
-                            ) : (
-                                <span className="me-1">💡</span>
-                            )}
-                            Hint
-                        </button>
-                        <button
+                            icon="💡"
+                            label={t("solve.hint")}
+                            tooltip={hintTooltip(1, t("solve.hintTitle"))}
+                            disabled={!hintsUnlocked || hintLoading || isCompleteRef.current || !canAfford(1)}
+                            loading={hintLoading}
+                            onRequest={requestHint}
+                        />
+                        <HintButton
+                            level={2}
                             className="btn btn-outline-warning"
-                            disabled={!hintsUnlocked || hintLoading || isCompleteRef.current}
-                            onClick={async (e) => {
-                                e.preventDefault();
-                                await requestHint(2);
-                            }}
-                            title={hintsUnlocked ? "Detaillierte Erklaerung vom Tutor" : "Klicke zuerst auf Feedback"}
-                        >
-                            {hintLoading ? (
-                                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
-                            ) : (
-                                <span className="me-1">🧑‍🏫</span>
-                            )}
-                            Erklaer es mir
-                        </button>
+                            icon="🧑‍🏫"
+                            label={t("solve.explain")}
+                            tooltip={hintTooltip(2, t("solve.explainTitle"))}
+                            disabled={!hintsUnlocked || hintLoading || isCompleteRef.current || !canAfford(2)}
+                            loading={hintLoading}
+                            onRequest={requestHint}
+                        />
+                        {creditsPerTask !== null && (
+                            <span
+                                className={`badge align-self-center ${creditsRemaining === 0 ? "text-bg-secondary" : "text-bg-light"}`}
+                                title={t("solve.creditsBadgeTitle")}
+                            >
+                                💡 {creditsRemaining ?? creditsPerTask}/{creditsPerTask}
+                            </span>
+                        )}
                         </>
                         )}
                     </div>
@@ -1494,7 +1967,7 @@ export default function SolvePage() {
                     {/* AP13: Hint display area */}
                     {hintError && (
                         <div className="alert alert-danger mt-2">
-                            <strong>Hint-Fehler:</strong> {hintError}
+                            <strong>{t("solve.hintErrorLabel")}</strong> {hintError}
                         </div>
                     )}
                     {hintText && (
@@ -1510,7 +1983,7 @@ export default function SolvePage() {
                             <div className="d-flex align-items-start gap-2">
                                 <span style={{ fontSize: "1.5rem" }}>🧑‍🏫</span>
                                 <div>
-                                    <strong>Erklaerung:</strong>
+                                    <strong>{t("solve.explanationLabel")}</strong>
                                     <div className="mt-1" style={{ whiteSpace: "pre-wrap" }}>{hintExplanation}</div>
                                 </div>
                             </div>
@@ -1528,18 +2001,18 @@ export default function SolvePage() {
                             }}
                         >
                             <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>&#x2705;</div>
-                            <h3 className="fw-bold text-success mb-2">Richtig geloest!</h3>
+                            <h3 className="fw-bold text-success mb-2">{t("solve.solvedTitle")}</h3>
                             <p className="text-muted mb-2">
                                 {attemptCountRef.current === 1
-                                    ? "Beim ersten Versuch — hervorragend!"
-                                    : `In ${attemptCountRef.current} Versuchen geschafft.`}
+                                    ? t("solve.solvedFirstTry")
+                                    : t("solve.solvedAfterAttempts", { attempts: attemptCountRef.current })}
                             </p>
 
                             {/* Self-report inline */}
                             {showSelfReport && (
                                 <div className="mb-3">
                                     <p className="mb-2 fw-bold" style={{ fontSize: "0.95rem" }}>
-                                        Wie sicher bist du, dass du es beim naechsten Mal wieder koenntest?
+                                        {t("solve.selfReportQuestion")}
                                     </p>
                                     <div className="d-flex justify-content-center gap-3">
                                         {[1, 2, 3, 4, 5].map((v) => (
@@ -1563,7 +2036,7 @@ export default function SolvePage() {
                                             </button>
                                         ))}
                                     </div>
-                                    <small className="text-muted mt-1 d-block">1 = unsicher · 5 = sehr sicher</small>
+                                    <small className="text-muted mt-1 d-block">{t("solve.selfReportScale")}</small>
                                 </div>
                             )}
 
@@ -1577,28 +2050,28 @@ export default function SolvePage() {
                                             navigate(`/solve/${nextTaskId}`, { state: { lang: language } });
                                         }}
                                     >
-                                        Naechste Aufgabe &rarr;
+                                        {t("solve.nextTask")} &rarr;
                                     </button>
                                 )}
                                 <button
                                     className="btn btn-outline-secondary"
                                     onClick={() => setShowCompletionBanner(false)}
                                 >
-                                    Schliessen
+                                    {t("solve.close")}
                                 </button>
                                 {task?.sequenceId && (
                                     <button
                                         className="btn btn-outline-primary"
                                         onClick={() => navigate(`/sequence/${task.sequenceId}`)}
                                     >
-                                        Zur Uebersicht
+                                        {t("solve.toOverview")}
                                     </button>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {teacherViewEnabled && (
+                    {teacherViewEnabled && teacherToolsVisible && (
                         <div
                             style={{
                                 position: "fixed",
@@ -1613,9 +2086,18 @@ export default function SolvePage() {
                                 zIndex: 1000,
                             }}
                         >
-                            <h6 className="fw-bold mb-2">👩‍🏫 Teacher Tools</h6>
+                            <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <h6 className="fw-bold mb-0">👩‍🏫 {t("solve.teacherTools")}</h6>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    aria-label={t("common.close")}
+                                    style={{ flexShrink: 0 }}
+                                    onClick={() => setTeacherToolsVisible(false)}
+                                />
+                            </div>
                             <details>
-                                <summary className="fw-semibold mb-1">Show model solution</summary>
+                                <summary className="fw-semibold mb-1">{t("solve.showModelSolution")}</summary>
                                 <pre
                                     className="bg-light p-2 rounded mt-2"
                                     style={{ whiteSpace: "pre-wrap", fontSize: "0.85rem" }}

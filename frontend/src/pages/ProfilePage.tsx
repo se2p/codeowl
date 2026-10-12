@@ -12,6 +12,7 @@ interface WorksheetSummary {
 
 interface SequenceSummary {
     id: string;
+    title: string | null;
     programmingLanguage: string;
     taskDescription: string;
 }
@@ -50,6 +51,17 @@ export default function ProfilePage() {
     const [pwErr, setPwErr] = useState("");
     const [pwSaving, setPwSaving] = useState(false);
 
+    // A FIM-Account's password is managed by the FIM directory, so it cannot be changed here.
+    // The cached session of someone logged in before this flag existed lacks it, so ask the
+    // server rather than trust localStorage.
+    const [fimAccount, setFimAccount] = useState(user?.fimAccount === true);
+    useEffect(() => {
+        if (!user) return;
+        api.get<{ fimAccount?: boolean }>("/auth/me")
+            .then(res => setFimAccount(res.data.fimAccount === true))
+            .catch(() => { /* keep the cached value */ });
+    }, [user]);
+
     useEffect(() => {
         if (user && (isTeacher || isAdmin)) {
             setLoadingResources(true);
@@ -73,6 +85,16 @@ export default function ProfilePage() {
         TEACHER: t("profile.roleTeacher"),
         STUDENT: t("profile.roleStudent"),
     }[user.role];
+
+    const handleDeleteSequence = async (id: string) => {
+        if (!window.confirm(t("profile.deleteSequenceConfirm"))) return;
+        try {
+            await api.delete(`/sequence/${id}`);
+            setMySequences(prev => prev.filter(s => s.id !== id));
+        } catch {
+            alert(t("profile.deleteSequenceFailed"));
+        }
+    };
 
     const handleNameSave = async () => {
         if (!firstName.trim() || !lastName.trim()) {
@@ -246,7 +268,7 @@ export default function ProfilePage() {
             <div className="card mb-3">
                 <div className="card-header d-flex justify-content-between align-items-center">
                     <strong>{t("profile.passwordSection")}</strong>
-                    {!editingPassword && (
+                    {!editingPassword && !fimAccount && (
                         <button className="btn btn-sm btn-outline-primary" onClick={() => { setEditingPassword(true); setPwMsg(""); setPwErr(""); }}>
                             <i className="bi bi-key me-1"></i>{t("profile.change")}
                         </button>
@@ -256,7 +278,9 @@ export default function ProfilePage() {
                     {pwMsg && <div className="alert alert-success py-2">{pwMsg}</div>}
                     {pwErr && <div className="alert alert-danger py-2">{pwErr}</div>}
 
-                    {editingPassword ? (
+                    {fimAccount ? (
+                        <p className="mb-0 text-muted">{t("profile.passwordManagedByFim")}</p>
+                    ) : editingPassword ? (
                         <>
                             <div className="mb-2">
                                 <label className="form-label">{t("profile.currentPassword")}</label>
@@ -319,13 +343,28 @@ export default function ProfilePage() {
                             ) : (
                                 <div className="list-group list-group-flush">
                                     {mySequences.map(seq => (
-                                        <Link key={seq.id} to={`/sequence/${seq.id}`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>{seq.programmingLanguage}</strong>
+                                        <div key={seq.id} className="list-group-item d-flex justify-content-between align-items-center gap-2">
+                                            <Link to={`/sequence/${seq.id}`} className="flex-grow-1 text-decoration-none text-reset">
+                                                {seq.title?.trim() ? (
+                                                    <>
+                                                        <strong className="d-block">{seq.title}</strong>
+                                                        <span className="badge text-bg-light text-muted">{seq.programmingLanguage}</span>
+                                                    </>
+                                                ) : (
+                                                    <strong>{seq.programmingLanguage}</strong>
+                                                )}
                                                 <small className="text-muted d-block">{seq.taskDescription?.substring(0, 80)}{seq.taskDescription && seq.taskDescription.length > 80 ? "..." : ""}</small>
-                                            </div>
-                                            <i className="bi bi-chevron-right"></i>
-                                        </Link>
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-danger"
+                                                title={t("profile.deleteSequence")}
+                                                aria-label={t("profile.deleteSequence")}
+                                                onClick={() => handleDeleteSequence(seq.id)}
+                                            >
+                                                <i className="bi bi-trash"></i>
+                                            </button>
+                                        </div>
                                     ))}
                                 </div>
                             )}

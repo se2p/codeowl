@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -71,6 +71,15 @@ public interface TieredTaskSequenceRepository {
     void deleteById(TieredTaskSequenceDTO delete);
 
     /**
+     * Hides a sequence from the library, search, suggestions and its owner's list, without
+     * removing it. Worksheets that already contain it keep working, because a worksheet loads
+     * its sequences by id and the row (with its tasks and submissions) still exists.
+     *
+     * @return whether this call is what deleted it; false for an unknown or already-deleted id
+     */
+    boolean softDeleteById(UUID sequenceId);
+
+    /**
      * Links a programming concept to a specific tiered task sequence in the repository.
      * This method ensures that the relationship between the given task sequence
      * and the concept is persisted. If the provided data is invalid, an exception is thrown.
@@ -91,6 +100,54 @@ public interface TieredTaskSequenceRepository {
      */
     void linkConceptsBatch(UUID sequenceId, List<UUID> conceptIds);
 
+    /**
+     * Replaces every concept linked to a sequence with the given set. Used when
+     * a teacher edits the concepts on the sequence page, where the edit is a new
+     * set rather than a series of add/remove operations.
+     *
+     * @param sequenceId the sequence whose concepts are being replaced
+     * @param conceptIds the concept IDs that should remain linked; an empty list
+     *                   leaves the sequence with none
+     */
+    void replaceConcepts(UUID sequenceId, List<UUID> conceptIds);
+
+    /**
+     * Overwrites a sequence's task description, the text shown under "Task Description" on
+     * the sequence page and searched by the library.
+     *
+     * @param taskDescription the new text, or {@code null} to clear it
+     */
+    void updateTaskDescription(UUID sequenceId, String taskDescription);
+
+    /**
+     * Sets or clears the owner-given name of a sequence.
+     *
+     * @param title the new name, or {@code null} to fall back to the default heading
+     */
+    void updateTitle(UUID sequenceId, String title);
+
+    /**
+     * The concept IDs currently linked to a sequence.
+     *
+     * <p>The read counterpart to {@link #linkConceptsBatch(UUID, List)}. Copying a sequence
+     * needs it: without the links the copy loses its structural concepts, and with them the
+     * copy's tags can be reproduced without paying for another LLM pass.
+     *
+     * @param sequenceId the sequence to read links for
+     * @return the linked concept IDs, empty when there are none or the sequence is unknown
+     */
+    List<UUID> findConceptIdsBySequenceId(UUID sequenceId);
+
+    /**
+     * Concept names for many sequences in one round trip — the list-screen counterpart to
+     * {@link #findConceptIdsBySequenceId(UUID)}, which only reads for a single sequence.
+     *
+     * @param sequenceIds the sequences to read concept names for
+     * @return sequenceId to its concept names (sorted by name); a sequence with no linked
+     *         concepts is simply absent from the map rather than mapped to an empty list
+     */
+    Map<UUID, List<String>> findConceptNamesBySequenceIds(List<UUID> sequenceIds);
+
     void tagSequence(UUID sequenceId, UUID evalInputId, String mode, UUID runId);
 
     /**
@@ -105,10 +162,53 @@ public interface TieredTaskSequenceRepository {
     UUID findOwnerIdByTaskId(UUID taskId);
 
     /**
+     * Records that a copied sequence has been edited, so the library starts listing it.
+     *
+     * <p>Sets {@code diverged_at} only on a copy that has not already diverged: an original has
+     * nothing to record, and a second edit must not move the timestamp — "first edited" is the
+     * question it answers. Both conditions live in the statement's WHERE rather than in a
+     * read-then-write, so concurrent edits cannot race into two different answers.
+     *
+     * <p>No-op for an unknown id, an original, or a copy already marked.
+     *
+     * @return whether this call is what marked it
+     */
+    boolean markDiverged(UUID sequenceId);
+
+    /**
+     * {@link #markDiverged(UUID)} reached through one of the sequence's tasks.
+     *
+     * <p>Editing a task edits the sequence that holds it — the material a teacher changes is
+     * almost always a task's statement, solution or distractors, not a sequence-level field. A
+     * single statement rather than a lookup followed by a mark, so the task's parent is resolved
+     * and stamped atomically.
+     *
+     * @return whether this call is what marked it
+     */
+    boolean markDivergedByTaskId(UUID taskId);
+
+    /**
      * AP19 Teil A: Updates the semantic_summary column with an LLM-generated one-line description.
      * No-op if the sequence doesn't exist.
      */
     void updateSemanticSummary(UUID sequenceId, String summary);
+
+    /**
+     * Reads the semantic_summary column.
+     *
+     * <p>The symmetric partner of {@link #updateSemanticSummary(UUID, String)}, added so a
+     * copied sequence can inherit its source's summary instead of waiting on a fresh LLM call
+     * that costs money and would drift from the original wording.
+     *
+     * <p>Deliberately a repository method rather than a field on
+     * {@link TieredTaskSequenceDTO}: the summary is not part of what the rest of the
+     * application loads and passes around, and widening the main read path for one copy
+     * operation would touch every caller of {@code loadById}.
+     *
+     * @param sequenceId the sequence to read
+     * @return the summary, or {@code null} when there is none or the sequence is unknown
+     */
+    String findSemanticSummary(UUID sequenceId);
 
     /**
      * AP19 Teil A: Loads the minimal payload needed to republish a
@@ -123,6 +223,22 @@ public interface TieredTaskSequenceRepository {
      * @return list of retag candidates, newest first
      */
     List<RetagCandidate> findRetagCandidates(boolean onlyMissingLlmTags, List<UUID> specificIds, int limit);
+
+    /**
+     * Concept-facet mirror of {@link #findRetagCandidates}, for the bulk concept re-classifier:
+     * same payload shape (a {@link RetagCandidate} is reused as-is — {@code combinedStatement}
+     * goes unused here, but a second near-identical record would only cost more to keep in
+     * step), same {@code specificIds}-overrides-filter rule, same safety cap. "Missing" means no
+     * row at all in {@code tiered_task_sequence_concepts} for that sequence, the concept-table
+     * analogue of "no {@code source='llm'} tag row".
+     *
+     * @param onlyMissingConcepts if true, restricts to sequences with no linked concept yet
+     * @param specificIds         if non-null and non-empty, restricts to just these IDs
+     *                            (overrides {@code onlyMissingConcepts})
+     * @param limit                safety cap on rows returned; negative/zero → no limit
+     * @return list of candidates, newest first
+     */
+    List<RetagCandidate> findConceptReclassifyCandidates(boolean onlyMissingConcepts, List<UUID> specificIds, int limit);
 
     /**
      * Minimal payload for bulk-retagging: everything the LLM tagger needs and nothing else.

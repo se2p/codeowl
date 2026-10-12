@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -94,6 +94,13 @@ public interface TaskRepository {
      * When disabled, distractors are kept in DB but not delivered to students.
      */
     void updateDistractorsEnabled(UUID taskId, boolean enabled);
+
+    /**
+     * Sets or clears the owner-given name of a task.
+     *
+     * @param title the new name, or {@code null} to fall back to the numbered default
+     */
+    void updateTitle(UUID taskId, String title);
 
     /**
      * Updates only the split_plan (JSONB) column of an existing task (AP31).

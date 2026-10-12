@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -22,6 +22,7 @@ import de.uni_passau.fim.se2.api.dto.ApiErrorResponse;
 import de.uni_passau.fim.se2.application.service.BackupService;
 import de.uni_passau.fim.se2.domain.exceptions.DomainValidationException;
 import de.uni_passau.fim.se2.domain.exceptions.GenerationException;
+import de.uni_passau.fim.se2.domain.exceptions.UnsupportedLanguageException;
 import de.uni_passau.fim.se2.domain.interfaces.DatabaseDumpExecutor;
 import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.Problem;
@@ -78,11 +79,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(GenerationException.class)
     public ResponseEntity<ApiErrorResponse> handleGenerationException(GenerationException ex) {
         HttpStatus status = resolveGenerationHttpStatus(ex);
-        log.error("Generation failed: {}", ex.getMessage(), ex);
+        if (ex instanceof UnsupportedLanguageException) {
+            // Expected outcome of a teacher pasting the wrong thing, not a fault: the message
+            // is the whole story and the trace is four frames of Optional plumbing. Logged
+            // without the throwable so it does not read as a server error in the console.
+            log.warn("Generation rejected: {}", ex.getMessage());
+        } else {
+            log.error("Generation failed: {}", ex.getMessage(), ex);
+        }
 
         ApiErrorResponse error = new ApiErrorResponse(
                 "Fehler bei der Aufgabengenerierung",
-                safeMsg(ex.getMessage())
+                safeMsg(ex.getMessage()),
+                ex instanceof UnsupportedLanguageException ? UnsupportedLanguageException.CODE : null
         );
         return ResponseEntity.status(status).body(error);
     }
@@ -150,6 +159,12 @@ public class GlobalExceptionHandler {
     }
 
     private static HttpStatus resolveGenerationHttpStatus(GenerationException ex) {
+        // Not a server fault: the request was well formed and the model answered correctly,
+        // the snippet simply is not a language we can analyse. 502 would be a lie, and worse,
+        // it is the status that makes a client suggest retrying something that cannot succeed.
+        if (ex instanceof UnsupportedLanguageException) {
+            return HttpStatus.UNPROCESSABLE_ENTITY; // 422
+        }
         Throwable cause = ex.getCause();
         if (cause instanceof TimeoutException || cause instanceof SocketTimeoutException) {
             return HttpStatus.GATEWAY_TIMEOUT; // 504

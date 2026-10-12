@@ -7,7 +7,7 @@ import type { ClassInfo } from "../types/models";
 
 export default function ClassesPage() {
     const { t } = useTranslation();
-    const { isLoggedIn, isStudent } = useAuth();
+    const { isLoggedIn, isStudent, isAdmin } = useAuth();
     const navigate = useNavigate();
 
     const [classes, setClasses] = useState<ClassInfo[]>([]);
@@ -176,6 +176,17 @@ export default function ClassesPage() {
                                         {c.description && (
                                             <p className="card-text text-muted small mb-0">
                                                 {c.description}
+                                            </p>
+                                        )}
+                                        {isAdmin && (
+                                            <p className="card-text text-muted small mb-0">
+                                                <i className="bi bi-person me-1"></i>
+                                                {t("classes.createdBy", {
+                                                    name: c.ownerName || c.ownerEmail || t("classes.unknownOwner"),
+                                                })}
+                                                {c.ownerName && c.ownerEmail && (
+                                                    <span className="ms-1">({c.ownerEmail})</span>
+                                                )}
                                             </p>
                                         )}
                                     </div>

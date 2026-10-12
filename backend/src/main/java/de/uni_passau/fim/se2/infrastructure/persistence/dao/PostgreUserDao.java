@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -48,8 +48,8 @@ public class PostgreUserDao implements UserRepository {
         user.setUpdatedAt(now);
 
         jdbc.update("""
-            INSERT INTO users (user_id, email, first_name, last_name, password_hash, role, is_verified, is_active, must_change_password, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?::user_role, ?, ?, ?, ?, ?)
+            INSERT INTO users (user_id, email, first_name, last_name, password_hash, role, is_verified, is_active, must_change_password, fim_uid, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?::user_role, ?, ?, ?, ?, ?, ?)
             """,
                 user.getUserId(),
                 user.getEmail(),
@@ -60,6 +60,7 @@ public class PostgreUserDao implements UserRepository {
                 user.isVerified(),
                 user.isActive(),
                 user.isMustChangePassword(),
+                user.getFimUid(),
                 Timestamp.valueOf(user.getCreatedAt()),
                 Timestamp.valueOf(user.getUpdatedAt())
         );
@@ -85,6 +86,15 @@ public class PostgreUserDao implements UserRepository {
     }
 
     @Override
+    public Optional<UserDTO> findByFimUid(String fimUid) {
+        List<UserDTO> results = jdbc.query(
+                "SELECT * FROM users WHERE fim_uid = ?",
+                rowMapper, fimUid
+        );
+        return results.stream().findFirst();
+    }
+
+    @Override
     public List<UserDTO> findAll() {
         return jdbc.query("SELECT * FROM users ORDER BY created_at DESC", rowMapper);
     }
@@ -94,7 +104,7 @@ public class PostgreUserDao implements UserRepository {
         user.setUpdatedAt(LocalDateTime.now());
         jdbc.update("""
             UPDATE users SET email = ?, first_name = ?, last_name = ?, password_hash = ?,
-                role = ?::user_role, is_verified = ?, is_active = ?, must_change_password = ?, updated_at = ?
+                role = ?::user_role, is_verified = ?, is_active = ?, must_change_password = ?, fim_uid = ?, updated_at = ?
             WHERE user_id = ?
             """,
                 user.getEmail(),
@@ -105,6 +115,7 @@ public class PostgreUserDao implements UserRepository {
                 user.isVerified(),
                 user.isActive(),
                 user.isMustChangePassword(),
+                user.getFimUid(),
                 Timestamp.valueOf(user.getUpdatedAt()),
                 user.getUserId()
         );

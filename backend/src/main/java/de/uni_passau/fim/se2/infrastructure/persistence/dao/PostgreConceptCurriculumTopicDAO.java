@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -23,6 +23,7 @@ import de.uni_passau.fim.se2.domain.entities.ConceptCurriculumTopicDTO;
 import de.uni_passau.fim.se2.domain.entities.ConceptDTO;
 import de.uni_passau.fim.se2.domain.entities.CurriculumTopicDTO;
 import de.uni_passau.fim.se2.domain.interfaces.ConceptCurriculumTopicRepository;
+import de.uni_passau.fim.se2.infrastructure.persistence.mapper.CurriculumTopicRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -47,27 +48,16 @@ public class PostgreConceptCurriculumTopicDAO implements ConceptCurriculumTopicR
 
     @Override
     public List<CurriculumTopicDTO> findAllByConcept(ConceptDTO concept) {
-        return jdbc.query("""
-            SELECT ct.id, ct.name, ct.description, ct.grade_level, ct.track, ct.learning_area, ct.parent_id, ct.sort_order
-            FROM curriculum_topics ct
-            JOIN concept_curriculum_topic cct ON ct.id = cct.topic_id
-            WHERE cct.concept_id = ?
-            ORDER BY ct.sort_order, ct.name
-            """,
-            (rs, rowNum) -> {
-                CurriculumTopicDTO dto = new CurriculumTopicDTO();
-                dto.setId(UUID.fromString(rs.getString("id")));
-                dto.setName(rs.getString("name"));
-                dto.setDescription(rs.getString("description"));
-                int grade = rs.getInt("grade_level");
-                dto.setGradeLevel(rs.wasNull() ? null : grade);
-                dto.setTrack(rs.getString("track"));
-                dto.setLearningArea(rs.getString("learning_area"));
-                String parentStr = rs.getString("parent_id");
-                dto.setParentId(parentStr != null ? UUID.fromString(parentStr) : null);
-                dto.setSortOrder(rs.getInt("sort_order"));
-                return dto;
-            },
+        // Shares PostgreCurriculumTopicDAO's column list and row mapper so a new
+        // curriculum_topics column only has to be added in one place.
+        return jdbc.query(
+            "SELECT " + PostgreCurriculumTopicDAO.columns("ct") + """
+             FROM curriculum_topics ct
+             JOIN concept_curriculum_topic cct ON ct.id = cct.topic_id
+             WHERE cct.concept_id = ?
+             ORDER BY ct.sort_order, ct.name
+             """,
+            new CurriculumTopicRowMapper(),
             concept.getId());
     }
 

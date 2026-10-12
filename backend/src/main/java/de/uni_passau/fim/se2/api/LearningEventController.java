@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -19,13 +19,18 @@
 package de.uni_passau.fim.se2.api;
 
 import de.uni_passau.fim.se2.application.service.LearningEventService;
+import de.uni_passau.fim.se2.application.service.OwnershipService;
+import de.uni_passau.fim.se2.application.service.TaskPersistenceService;
 import de.uni_passau.fim.se2.domain.entities.LearningEventDTO;
+import de.uni_passau.fim.se2.domain.entities.TaskDTO;
+import de.uni_passau.fim.se2.domain.entities.TieredTaskSequenceDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -42,6 +47,8 @@ public class LearningEventController {
 
     private final LearningEventService learningEventService;
     private final ObjectMapper objectMapper;
+    private final OwnershipService ownershipService;
+    private final TaskPersistenceService taskPersistenceService;
 
     /**
      * Request data transfer object for logging events.
@@ -105,24 +112,34 @@ public class LearningEventController {
     }
 
     /**
-     * GET /api/events/task/{taskId} — authenticated.
+     * GET /api/events/task/{taskId} — the owning teacher, or an admin.
+     *
+     * <p>Events carry the arrangements students built, move by move. Being logged in is not a
+     * reason to read another student's work, so this is scoped to whoever owns the sequence the
+     * task belongs to.
      *
      * @param taskId the task ID to filter events by
      * @return list of events associated with the specified task
      */
     @GetMapping("/task/{taskId}")
     public ResponseEntity<List<LearningEventDTO>> getEventsByTask(@PathVariable UUID taskId) {
+        TaskDTO task = taskPersistenceService.loadTaskById(taskId);
+        if (task == null || task.getSequenceId() == null) {
+            throw new AccessDeniedException("Task not found");
+        }
+        requireSequenceOwnerOrAdmin(task.getSequenceId());
         return ResponseEntity.ok(learningEventService.getEventsByTask(taskId));
     }
 
     /**
-     * GET /api/events/sequence/{sequenceId} — authenticated.
+     * GET /api/events/sequence/{sequenceId} — the owning teacher, or an admin.
      *
      * @param sequenceId the sequence ID to filter events by
      * @return list of events associated with the specified sequence
      */
     @GetMapping("/sequence/{sequenceId}")
     public ResponseEntity<List<LearningEventDTO>> getEventsBySequence(@PathVariable UUID sequenceId) {
+        requireSequenceOwnerOrAdmin(sequenceId);
         return ResponseEntity.ok(learningEventService.getEventsBySequence(sequenceId));
     }
 
@@ -137,14 +154,33 @@ public class LearningEventController {
     }
 
     /**
-     * GET /api/events/summary/{sequenceId} — authenticated.
+     * GET /api/events/summary/{sequenceId} — the owning teacher, or an admin.
      *
      * @param sequenceId the sequence ID to retrieve the summary for
      * @return summary of the specified sequence
      */
     @GetMapping("/summary/{sequenceId}")
     public ResponseEntity<Map<String, Object>> getSequenceSummary(@PathVariable UUID sequenceId) {
+        requireSequenceOwnerOrAdmin(sequenceId);
         return ResponseEntity.ok(learningEventService.getSequenceSummary(sequenceId));
+    }
+
+    /**
+     * Allows the sequence's owner and admins through, and nobody else.
+     *
+     * The same check {@code TasksController} and {@code LibraryController} apply to
+     * sequence-scoped data. A student is never a sequence owner, so this denies them without
+     * needing a role test.
+     *
+     * @param sequenceId the sequence whose events are being read
+     * @throws AccessDeniedException if the caller does not own the sequence and is not an admin
+     */
+    private void requireSequenceOwnerOrAdmin(UUID sequenceId) {
+        TieredTaskSequenceDTO seq = taskPersistenceService.loadSequenceById(sequenceId);
+        if (seq == null) {
+            throw new AccessDeniedException("Sequence not found");
+        }
+        ownershipService.checkOwnership(seq.getOwnerId(), "learning events");
     }
 
     /**

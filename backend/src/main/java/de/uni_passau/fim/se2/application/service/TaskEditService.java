@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -125,6 +125,10 @@ public class TaskEditService {
 
         // 4. Update the task
         taskRepo.updateStatementAndSolution(taskId, request.getProblemStatement(), request.getCode());
+
+        // A copy whose statement or solution has been rewritten is no longer a duplicate of what
+        // it came from, so the library should list it. No-op unless this is an unmarked copy.
+        sequenceRepo.markDivergedByTaskId(taskId);
 
         // AP15: Update distractors if provided in the request
         if (request.getDistractors() != null) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -18,6 +18,7 @@
  */
 package de.uni_passau.fim.se2.application.service;
 
+import de.uni_passau.fim.se2.domain.entities.UserDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -65,6 +66,28 @@ public class OwnershipService {
                 .map(a -> a.substring(5))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * The current user's role as the enum, or {@code null} when anonymous or unrecognised.
+     *
+     * <p>The string form above is what the older checks here are built on. Anything reasoning
+     * about roles rather than merely comparing them — {@link
+     * de.uni_passau.fim.se2.domain.model.WorksheetAccessPolicy}, for one — wants the enum, and
+     * translating once here beats every caller doing it slightly differently.
+     */
+    public UserDTO.UserRole getCurrentUserRole() {
+        String role = getCurrentRole();
+        if (role == null) {
+            return null;
+        }
+        try {
+            return UserDTO.UserRole.valueOf(role);
+        } catch (IllegalArgumentException e) {
+            // A token carrying a role this build does not know is not an authorisation to
+            // guess. Treated as anonymous, which is the least it could possibly grant.
+            return null;
+        }
     }
 
     /**

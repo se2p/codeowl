@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -41,6 +41,7 @@ public class TaskRowMapper implements RowMapper<TaskDTO> {
         dto.setStatement(rs.getString("statement"));
         dto.setSolution(rs.getString("solution"));
         dto.setTierLevel(rs.getInt("tier_level"));
+        dto.setTitle(rs.getString("title"));
         dto.setCyclomaticComplexity(intOrZero(rs, "cyclomatic_complexity"));
         dto.setLinesOfCode(intOrZero(rs, "lines_of_code"));
         dto.setDistinctIdentifierCount(intOrZero(rs, "distinct_identifier_count"));

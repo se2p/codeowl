@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -19,6 +19,7 @@
 package de.uni_passau.fim.se2.infrastructure.ai;
 
 import de.uni_passau.fim.se2.domain.entities.*;
+import de.uni_passau.fim.se2.domain.model.SupportedLanguage;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 import org.springframework.stereotype.*;
@@ -1276,6 +1277,11 @@ public class PromptBuilder {
         ObjectNode properties = mapper.createObjectNode();
         ObjectNode language = mapper.createObjectNode();
         language.put("type", "string");
+        // A closed set, not a free string. Structured output enforces this, so a typo like
+        // "Pyhton" -- which once reached the database and silently cost six sequences their
+        // static analysis -- is no longer a value the model is able to return.
+        ArrayNode allowed = language.putArray("enum");
+        SupportedLanguage.detectionChoices().forEach(allowed::add);
         properties.set("language", language);
 
         schema.set("properties", properties);
@@ -1342,8 +1348,27 @@ public class PromptBuilder {
         }
 
         String langLabel = "en".equalsIgnoreCase(targetLanguage) ? "English" : "German";
-        String track = topic.getTrack() != null ? topic.getTrack() : "NTG";
-        String learningArea = topic.getLearningArea() != null ? topic.getLearningArea() : "";
+
+        // The curriculum tree holds school Jahrgangsstufen and university
+        // modules. Describing a module as "Jahrgangsstufe 9, Track NTG" — which
+        // is what the old fixed defaults did for a topic without a grade —
+        // tells the model the wrong audience, so each line is only written when
+        // the topic actually has that field.
+        StringBuilder context = new StringBuilder();
+        context.append("Topic: %s\n".formatted(topic.getName()));
+        context.append("Educational level: %s\n".formatted(
+                "UNIVERSITY".equalsIgnoreCase(topic.getEducationLevel())
+                        ? "University course — students are adults in higher education"
+                        : "Secondary school (Gymnasium, Bayern LehrplanPLUS)"));
+        if (topic.getGradeLevel() != null) {
+            context.append("Grade: Jahrgangsstufe %d\n".formatted(topic.getGradeLevel()));
+        }
+        if (topic.getTrack() != null && !topic.getTrack().isBlank()) {
+            context.append("Track: %s\n".formatted(topic.getTrack()));
+        }
+        if (topic.getLearningArea() != null && !topic.getLearningArea().isBlank()) {
+            context.append("Learning Area: %s\n".formatted(topic.getLearningArea()));
+        }
 
         String distractorLine = distractorsEnabled
                 ? "Include distractor plans."
@@ -1353,10 +1378,7 @@ public class PromptBuilder {
             Generate a %d-tier Parsons puzzle task sequence for the following curriculum context.
 
             ── CURRICULUM CONTEXT ──
-            Topic: %s
-            Grade: Jahrgangsstufe %d
-            Track: %s
-            Learning Area: %s
+            %s
             Programming Language: %s
             Target Concepts: %s
             Task Language: %s
@@ -1372,10 +1394,7 @@ public class PromptBuilder {
             Generate %d tasks (tiers 1–%d) as specified. %s
             """.formatted(
                 tierCount,
-                topic.getName(),
-                topic.getGradeLevel() != null ? topic.getGradeLevel() : 9,
-                track,
-                learningArea,
+                context.toString().stripTrailing(),
                 language,
                 String.join(", ", concepts),
                 langLabel,

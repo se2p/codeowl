@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -36,6 +36,11 @@ public class LearningEventService {
 
     private final LearningEventRepository learningEventRepository;
 
+    /**
+     * The event types that may be written — and, through {@link #allowedEventTypes()}, the
+     * ones the admin research page will accept as a filter, so a mistyped filter is a 400
+     * rather than an empty table that looks like missing data.
+     */
     private static final Set<String> ALLOWED_EVENT_TYPES = Set.of(
             // AP10/AP11: Core events
             "task_opened",
@@ -43,7 +48,11 @@ public class LearningEventService {
             "feedback_requested",
             "task_correct",
             "task_abandoned",
+            // Historical: emitted while the shuffle button still cleared the
+            // solution area. Kept accepted so replayed or queued events from an
+            // older client are not rejected; nothing produces it now.
             "task_reset",
+            "source_shuffled",
             "task_reopened",
             "tier_opened",
             "tier_closed",
@@ -64,10 +73,34 @@ public class LearningEventService {
             // AP15: Distractor analytics
             "distractor_placed",
             "distractor_removed",
+            // Redo of an already-solved task
+            "task_redo_started",
             // AP31: Inline-split fragment analytics
             "fragment_placed",
-            "split_distractor_placed"
+            "split_distractor_placed",
+            // AP30/AP31: what the student actually typed into a gap, and how they ordered an
+            // inline-split line, each with the expected value alongside it. SolvePage has
+            // emitted all four since gaps and splits were added, but they were never on this
+            // list, so every one was rejected with a 400 that useEventTracker swallows on
+            // purpose -- the client reported success and nothing was stored. They are also the
+            // one part of a student's work that task_submissions cannot hold: it records the
+            // visible text of each block, and neither a gap value nor a chip placement
+            // contributes any textContent. Until now they were recorded nowhere at all.
+            "gap_correct",
+            "gap_incorrect",
+            "split_line_correct",
+            "split_line_incorrect",
+            // Every reorder and indent the student makes, batched. Until this existed the
+            // only record of an arrangement was whatever they had when they clicked Feedback,
+            // so a student who worked for ten minutes without clicking it left nothing behind
+            // -- and no event of any kind carried indentation.
+            "arrangement_changed"
     );
+
+    /** The allowlist above, for callers that validate against it rather than write through it. */
+    public static Set<String> allowedEventTypes() {
+        return ALLOWED_EVENT_TYPES;
+    }
 
     /**
      * Logs a learning event. If tracking is not enabled for the student's class,
@@ -85,8 +118,14 @@ public class LearningEventService {
                     "Invalid eventType: " + eventType + ". Allowed: " + ALLOWED_EVENT_TYPES);
         }
 
-        // Anonymize if tracking is not enabled for this student's class
+        // Resolve the class BEFORE anonymizing, because anonymizing is what destroys the only
+        // link back to it. Identity is dropped for an untracked class; class context is kept, so
+        // a per-class view still sees the work — the same trade feedback_logs already makes.
+        UUID classId = null;
         if (userId != null && learningEventRepository instanceof PostgreLearningEventDao dao) {
+            classId = dao.resolveClassId(userId, taskId);
+
+            // Anonymize if tracking is not enabled for this student's class
             if (!dao.isTrackingEnabledForStudent(userId)) {
                 log.debug("Tracking not enabled for user {}, anonymizing event", userId);
                 userId = null;
@@ -95,6 +134,7 @@ public class LearningEventService {
 
         LearningEventDTO event = LearningEventDTO.builder()
                 .userId(userId)
+                .classId(classId)
                 .taskId(taskId)
                 .sequenceId(sequenceId)
                 .tierLevel(tierLevel)

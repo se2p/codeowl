@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2026 CodeOwl contributors
+ * Copyright (C) 2026 CodeOwl contributors
  *
  * This file is part of CodeOwl.
  *
@@ -41,6 +41,12 @@ public class CurriculumTopicRowMapper implements RowMapper<CurriculumTopicDTO> {
         String parentStr = rs.getString("parent_id");
         dto.setParentId(parentStr != null ? UUID.fromString(parentStr) : null);
         dto.setSortOrder(rs.getInt("sort_order"));
+        // English translations — null for a topic that has none; the columns
+        // themselves come from 11_migration_curriculum_i18n.sql, which is required.
+        dto.setNameEn(rs.getString("name_en"));
+        dto.setDescriptionEn(rs.getString("description_en"));
+        dto.setTrackEn(rs.getString("track_en"));
+        dto.setEducationLevel(rs.getString("education_level"));
         return dto;
     }
 }

@@ -12,6 +12,7 @@ interface AuthContextType {
     user: AuthUser | null;
     loading: boolean;
     login: (email: string, password: string) => Promise<LoginResult>;
+    loginWithFim: (username: string, password: string) => Promise<LoginResult>;
     logout: () => void;
     clearMustChangePassword: () => void;
     isLoggedIn: boolean;
@@ -45,7 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = async (email: string, password: string): Promise<LoginResult> => {
         const response = await api.post<LoginResponse>("/auth/login", { email, password });
-        const data = response.data;
+        return storeLogin(response.data);
+    };
+
+    const loginWithFim = async (username: string, password: string): Promise<LoginResult> => {
+        const response = await api.post<LoginResponse>("/auth/login/fim", { username, password });
+        return storeLogin(response.data);
+    };
+
+    const storeLogin = (data: LoginResponse): LoginResult => {
 
         const authUser: AuthUser = {
             userId: data.userId,
@@ -55,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: data.role,
             token: data.token,
             mustChangePassword: data.mustChangePassword ?? false,
+            fimAccount: data.fimAccount ?? false,
         };
 
         localStorage.setItem("jwt", data.token);
@@ -82,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         login,
+        loginWithFim,
         logout,
         clearMustChangePassword,
         isLoggedIn: !!user,

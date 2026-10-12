@@ -167,9 +167,9 @@ export default function CodeSolutionEditor({
                     onChange={(e) => setGapMode(e.target.value as GapMode)}
                     title={t("taskEdit.gapModeTitle", "Vergleichsmodus für neue Lücken")}
                 >
-                    <option value="trim">trim (Standard)</option>
-                    <option value="exact">exact</option>
-                    <option value="ci">case-insensitive</option>
+                    <option value="trim">{t("taskEdit.gapModeTrim")}</option>
+                    <option value="exact">{t("taskEdit.gapModeExact")}</option>
+                    <option value="ci">{t("taskEdit.gapModeCi")}</option>
                 </select>
                 <small className="text-muted">
                     {t("taskEdit.gapHint", "Text markieren → „Auswahl als Lücke“. Mehrere Lücken pro Zeile möglich.")}
@@ -269,10 +269,10 @@ export default function CodeSolutionEditor({
                                             ))}
                                             {(existing.distractors ?? []).length > 0 && (
                                                 <button type="button" className="btn btn-sm btn-outline-danger py-0 px-1"
-                                                    title={t("splitEditor.removeDistractor", "Distraktor entfernen")}
+                                                    title={t("splitEditor.removeDistractor")}
                                                     onClick={() => onSplitsChange((splits ?? []).map((s) =>
                                                         s.lineIndex === li ? { ...s, distractors: [] } : s))}>
-                                                    <i className="bi bi-x-circle me-1"></i>{t("splitEditor.removeDistractor", "Distraktor entfernen")}
+                                                    <i className="bi bi-x-circle me-1"></i>{t("splitEditor.removeDistractor")}
                                                 </button>
                                             )}
                                         </div>
